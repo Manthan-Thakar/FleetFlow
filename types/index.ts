@@ -13,6 +13,26 @@ export interface CompanyDocument extends BaseDocument {
   companyId: string;
 }
 
+// ===== Company Types =====
+
+export interface Company extends BaseDocument {
+  name: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+  phoneNumber: string;
+  email: string;
+  website?: string;
+  taxId?: string;
+  registrationNumber?: string;
+  logo?: string;
+  description?: string;
+  industry?: string;
+  adminUserId: string; // Reference to the admin user who created the company
+}
+
 // ===== User Types =====
 
 export type UserRole = 'admin' | 'manager' | 'driver' | 'customer';
@@ -26,6 +46,7 @@ export interface User extends BaseDocument {
   phoneNumber?: string;
   photoURL?: string;
   companyId: string;
+  isProfileComplete: boolean;
   lastLoginAt?: Timestamp | Date;
 }
 
