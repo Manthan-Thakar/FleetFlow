@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FleetFlow API Tester</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .test-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #5568d3;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .response {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .response.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .response.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚛 FleetFlow API Tester</h1>
+        <p class="subtitle">Test authentication endpoints locally</p>
+
+        <!-- Sign Up -->
+        <div class="test-section">
+            <h2>1. Sign Up</h2>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="signup-email" value="testuser@company.com">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="signup-password" value="SecurePass123">
+            </div>
+            <div class="form-group">
+                <label>Display Name</label>
+                <input type="text" id="signup-name" value="Test User">
+            </div>
+            <div class="form-group">
+                <label>Role</label>
+                <select id="signup-role">
+                    <option value="admin">Admin</option>
+                    <option value="manager" selected>Manager</option>
+                    <option value="driver">Driver</option>
+                    <option value="customer">Customer</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Company ID</label>
+                <input type="text" id="signup-company" value="company_001">
+            </div>
+            <div class="form-group">
+                <label>Phone Number (optional)</label>
+                <input type="tel" id="signup-phone" value="+1234567890">
+            </div>
+            <button onclick="testSignUp()">Test Sign Up</button>
+            <div id="signup-response"></div>
+        </div>
+
+        <!-- Sign In -->
+        <div class="test-section">
+            <h2>2. Sign In</h2>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="signin-email" value="testuser@company.com">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="signin-password" value="SecurePass123">
+            </div>
+            <button onclick="testSignIn()">Test Sign In</button>
+            <div id="signin-response"></div>
+        </div>
+
+        <!-- Verify -->
+        <div class="test-section">
+            <h2>3. Verify User</h2>
+            <p style="color: #666; font-size: 14px; margin-bottom: 15px;">Checks if user is currently authenticated</p>
+            <button onclick="testVerify()">Test Verify</button>
+            <div id="verify-response"></div>
+        </div>
+
+        <!-- Reset Password -->
+        <div class="test-section">
+            <h2>4. Reset Password</h2>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="reset-email" value="testuser@company.com">
+            </div>
+            <button onclick="testResetPassword()">Test Reset Password</button>
+            <div id="reset-response"></div>
+        </div>
+
+        <!-- Sign Out -->
+        <div class="test-section">
+            <h2>5. Sign Out</h2>
+            <button onclick="testSignOut()">Test Sign Out</button>
+            <div id="signout-response"></div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://localhost:3000';
+
+        function showResponse(elementId, data, isSuccess) {
+            const element = document.getElementById(elementId);
+            element.className = `response ${isSuccess ? 'success' : 'error'}`;
+            element.textContent = JSON.stringify(data, null, 2);
+        }
+
+        function showLoading(elementId) {
+            const element = document.getElementById(elementId);
+            element.className = 'response';
+            element.innerHTML = 'Loading<span class="loading"></span>';
+        }
+
+        async function testSignUp() {
+            showLoading('signup-response');
+            try {
+                const response = await fetch(`${BASE_URL}/api/auth/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: document.getElementById('signup-email').value,
+                        password: document.getElementById('signup-password').value,
+                        displayName: document.getElementById('signup-name').value,
+                        role: document.getElementById('signup-role').value,
+                        companyId: document.getElementById('signup-company').value,
+                        phoneNumber: document.getElementById('signup-phone').value,
+                    }),
+                });
+                const data = await response.json();
+                showResponse('signup-response', data, response.ok);
+            } catch (error) {
+                showResponse('signup-response', { error: error.message }, false);
+            }
+        }
+
+        async function testSignIn() {
+            showLoading('signin-response');
+            try {
+                const response = await fetch(`${BASE_URL}/api/auth/signin`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: document.getElementById('signin-email').value,
+                        password: document.getElementById('signin-password').value,
+                    }),
+                });
+                const data = await response.json();
+                showResponse('signin-response', data, response.ok);
+            } catch (error) {
+                showResponse('signin-response', { error: error.message }, false);
+            }
+        }
+
+        async function testVerify() {
+            showLoading('verify-response');
+            try {
+                const response = await fetch(`${BASE_URL}/api/auth/verify`);
+                const data = await response.json();
+                showResponse('verify-response', data, response.ok);
+            } catch (error) {
+                showResponse('verify-response', { error: error.message }, false);
+            }
+        }
+
+        async function testResetPassword() {
+            showLoading('reset-response');
+            try {
+                const response = await fetch(`${BASE_URL}/api/auth/reset-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: document.getElementById('reset-email').value,
+                    }),
+                });
+                const data = await response.json();
+                showResponse('reset-response', data, response.ok);
+            } catch (error) {
+                showResponse('reset-response', { error: error.message }, false);
+            }
+        }
+
+        async function testSignOut() {
+            showLoading('signout-response');
+            try {
+                const response = await fetch(`${BASE_URL}/api/auth/signout`, {
+                    method: 'POST',
+                });
+                const data = await response.json();
+                showResponse('signout-response', data, response.ok);
+            } catch (error) {
+                showResponse('signout-response', { error: error.message }, false);
+            }
+        }
+    </script>
+</body>
+</html>
