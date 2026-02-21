@@ -113,18 +113,40 @@ export default function AnalyticsPage() {
   const [selectedMonth, setSelectedMonth] = useState('All');
   const months = ['All', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
 
+  type MonthlyMetric = {
+    month: string;
+    revenue: number;
+    fuelCost: number;
+    maintenance: number;
+    netProfit: number;
+  };
+  type FuelTrendPoint = {
+    label: string;
+    kmL: number;
+  };
+  type CostlyVehicle = {
+    id: string;
+    cost: number;
+  };
+  type DeadStockVehicle = {
+    id: string;
+    name: string;
+    lastUsed: string;
+    idleDays: number;
+  };
+
   // Use Firebase analytics data instead of mock data
-  const monthlyData = [];
-  const fuelTrendData = fuelAnalytics?.monthlyTrend || [];
-  const topCostlyVehicles = costAnalytics?.vehicleCosts || [];
-  const deadStockVehicles = fleetAnalytics?.underutilized || [];
+  const monthlyData: MonthlyMetric[] = [];
+  const fuelTrendData: FuelTrendPoint[] = fuelAnalytics?.monthlyTrend ?? [];
+  const topCostlyVehicles: CostlyVehicle[] = costAnalytics?.vehicleCosts ?? [];
+  const deadStockVehicles: DeadStockVehicle[] = fleetAnalytics?.underutilized ?? [];
 
-  const filtered = selectedMonth === 'All' ? monthlyData : monthlyData.filter((m: any) => m.month === selectedMonth);
+  const filtered = selectedMonth === 'All' ? monthlyData : monthlyData.filter((m) => m.month === selectedMonth);
 
-  const totalRevenue = filtered.reduce((s: number, m: any) => s + m.revenue, 0);
-  const totalFuel = filtered.reduce((s: number, m: any) => s + m.fuelCost, 0);
-  const totalMaintenance = filtered.reduce((s: number, m: any) => s + m.maintenance, 0);
-  const totalProfit = filtered.reduce((s: number, m: any) => s + m.netProfit, 0);
+  const totalRevenue = filtered.reduce((s, m) => s + m.revenue, 0);
+  const totalFuel = filtered.reduce((s, m) => s + m.fuelCost, 0);
+  const totalMaintenance = filtered.reduce((s, m) => s + m.maintenance, 0);
+  const totalProfit = filtered.reduce((s, m) => s + m.netProfit, 0);
 
   if (loading) {
     return (
