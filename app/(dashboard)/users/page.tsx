@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Search, Loader2, Eye, Trash2, X, Filter, Shield, Mail, Phone, User, Edit2 } from 'lucide-react';
+import { Plus, Search, Loader2, Eye, Trash2, X, Filter, Shield, Mail, Phone, User as UserIcon, Edit2 } from 'lucide-react';
 import { useAuth } from '@/firebase/hooks/useAuth';
 import { useUserManagement } from '@/firebase/hooks/useUserManagement';
-import { TeamMember } from '@/types';
+import type { User, UserRole } from '@/types';
 
 const ROLE_COLORS: Record<string, string> = {
   admin: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
@@ -15,19 +15,19 @@ const ROLE_COLORS: Record<string, string> = {
 
 const ROLE_ICONS: Record<string, React.ReactNode> = {
   admin: <Shield size={16} />,
-  manager: <User size={16} />,
-  driver: <User size={16} />,
-  customer: <User size={16} />,
+  manager: <UserIcon size={16} />,
+  driver: <UserIcon size={16} />,
+  customer: <UserIcon size={16} />,
 };
 
 export default function UsersPage() {
   const { user: currentUser } = useAuth();
-  const { members, loading, error, addMember, deleteMember, updateMemberRole } = useUserManagement(currentUser?.companyId);
+  const { members, loading, error, addMember, deleteMember, updateRole } = useUserManagement(currentUser?.companyId);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const [selectedMember, setSelectedMember] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
@@ -36,7 +36,7 @@ export default function UsersPage() {
     name: '',
     email: '',
     phone: '',
-    role: 'driver' as TeamMember['role'],
+    role: 'driver' as UserRole,
     department: '',
   });
 
@@ -52,15 +52,12 @@ export default function UsersPage() {
     setIsSubmitting(true);
     try {
       await addMember({
-        companyId: currentUser.companyId,
         name: formData.name,
         email: formData.email,
-        phone: formData.phone,
+        phoneNumber: formData.phone,
         role: formData.role,
-        department: formData.department,
         status: 'active',
         joinDate: new Date(),
-        permissions: [],
       });
 
       setShowAddModal(false);
@@ -95,7 +92,7 @@ export default function UsersPage() {
 
   const filteredMembers = members.filter(member => {
     const matchesSearch =
-      member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.email.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesRole = roleFilter === 'all' || member.role === roleFilter;
@@ -192,8 +189,8 @@ export default function UsersPage() {
                     <tr key={member.id} className="border-b border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
                       <td className="px-6 py-4">
                         <div>
-                          <p className="font-semibold text-black dark:text-white">{member.name}</p>
-                          <p className="text-sm text-zinc-600 dark:text-zinc-400">{member.department}</p>
+                          <p className="font-semibold text-black dark:text-white">{member.displayName}</p>
+                          <p className="text-sm text-zinc-600 dark:text-zinc-400">{member.role}</p>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-black dark:text-white">{member.email}</td>
@@ -226,7 +223,7 @@ export default function UsersPage() {
 
             {filteredMembers.length === 0 && (
               <div className="text-center py-12">
-                <User size={48} className="mx-auto text-zinc-400 mb-4" />
+                <UserIcon size={48} className="mx-auto text-zinc-400 mb-4" />
                 <p className="text-zinc-600 dark:text-zinc-400">No members found</p>
               </div>
             )}
@@ -288,7 +285,7 @@ export default function UsersPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) setShowViewModal(false); }}>
           <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl max-w-md w-full">
             <div className="flex items-center justify-between p-6 border-b border-zinc-200 dark:border-zinc-800">
-              <h2 className="text-2xl font-bold text-black dark:text-white">{selectedMember.name}</h2>
+              <h2 className="text-2xl font-bold text-black dark:text-white">{selectedMember.displayName}</h2>
               <button onClick={() => setShowViewModal(false)} className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"><X size={24} /></button>
             </div>
             <div className="p-6 space-y-4">
@@ -299,12 +296,12 @@ export default function UsersPage() {
                   <p className="text-black dark:text-white font-semibold">{selectedMember.email}</p>
                 </div>
               </div>
-              {selectedMember.phone && (
+              {selectedMember.phoneNumber && (
                 <div className="flex items-center gap-2">
                   <Phone size={18} className="text-zinc-600 dark:text-zinc-400" />
                   <div>
                     <p className="text-sm text-zinc-600 dark:text-zinc-400">Phone</p>
-                    <p className="text-black dark:text-white font-semibold">{selectedMember.phone}</p>
+                    <p className="text-black dark:text-white font-semibold">{selectedMember.phoneNumber}</p>
                   </div>
                 </div>
               )}
@@ -321,12 +318,6 @@ export default function UsersPage() {
                   {selectedMember.status.charAt(0).toUpperCase() + selectedMember.status.slice(1)}
                 </span>
               </div>
-              {selectedMember.department && (
-                <div>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-1">Department</p>
-                  <p className="text-black dark:text-white font-semibold">{selectedMember.department}</p>
-                </div>
-              )}
             </div>
             <div className="flex justify-end p-6 border-t border-zinc-200 dark:border-zinc-800">
               <button onClick={() => setShowViewModal(false)} className="px-6 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 font-semibold">Close</button>
@@ -343,7 +334,7 @@ export default function UsersPage() {
                 <Trash2 className="text-red-600 dark:text-red-400" size={32} />
               </div>
               <h2 className="text-2xl font-bold text-black dark:text-white text-center mb-2">Remove Member?</h2>
-              <p className="text-zinc-600 dark:text-zinc-400 text-center mb-4">Remove {selectedMember.name} from your team. This action cannot be undone.</p>
+              <p className="text-zinc-600 dark:text-zinc-400 text-center mb-4">Remove {selectedMember.displayName} from your team. This action cannot be undone.</p>
             </div>
             <div className="flex space-x-3 p-6 border-t border-zinc-200 dark:border-zinc-800">
               <button onClick={() => { setShowDeleteModal(false); setSelectedMember(null); }} className="flex-1 px-6 py-2 border-2 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 font-semibold">Cancel</button>

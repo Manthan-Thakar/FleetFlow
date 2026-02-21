@@ -17,12 +17,13 @@ interface MaintenanceLog {
   issueService: string;
   description: string;
   status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
-  scheduledDate: string;
-  completedDate?: string;
+  scheduledDate: Maintenance['scheduledDate'] | string;
+  completedDate?: Maintenance['completedDate'] | string;
   cost: {
     labor: number;
     parts: number;
     total: number;
+    currency?: string;
   };
   serviceProvider: {
     name: string;
@@ -74,7 +75,39 @@ export default function MaintenancePage() {
   });
 
   // Use Firebase data instead of mock data
-  const maintenanceLogs = maintenanceRecords as MaintenanceLog[];
+  const maintenanceLogs: MaintenanceLog[] = maintenanceRecords.map((record) => {
+    const extras = record as Maintenance & {
+      logId?: string;
+      vehicleName?: string;
+      vehicleNumber?: string;
+      issueService?: string;
+    };
+
+    return {
+      id: record.id,
+      logId: extras.logId ?? record.id,
+      vehicleId: record.vehicleId,
+      vehicleName: extras.vehicleName ?? record.vehicleId,
+      vehicleNumber: extras.vehicleNumber ?? record.vehicleId,
+      type: record.type,
+      category: record.category,
+      issueService: extras.issueService ?? record.description,
+      description: record.description,
+      status: record.status,
+      scheduledDate: record.scheduledDate,
+      completedDate: record.completedDate,
+      cost: {
+        labor: record.cost.labor,
+        parts: record.cost.parts,
+        total: record.cost.total,
+        currency: record.cost.currency,
+      },
+      serviceProvider: record.serviceProvider,
+      mileage: record.mileage,
+      performedBy: record.performedBy,
+      notes: record.notes,
+    };
+  });
 
   const toDate = (value: any): Date | null => {
     if (!value) return null;

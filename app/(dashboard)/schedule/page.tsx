@@ -97,7 +97,7 @@ export default function SchedulePage() {
   const getStatusColor = (status: ShiftStatus) => {
     switch (status) {
       case 'scheduled': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
-      case 'in_progress': return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400';
+      case 'in-progress': return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400';
       case 'completed': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
       case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
       default: return 'bg-gray-100 text-gray-800';
@@ -192,7 +192,7 @@ export default function SchedulePage() {
           </div>
           <div className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-lg border border-zinc-200 dark:border-zinc-800">
             <p className="text-zinc-600 dark:text-zinc-400 text-sm">In Progress</p>
-            <p className="text-2xl font-bold text-amber-600 mt-1">{shifts.filter(s => s.status === 'in_progress').length}</p>
+            <p className="text-2xl font-bold text-amber-600 mt-1">{shifts.filter(s => s.status === 'in-progress').length}</p>
           </div>
           <div className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-lg border border-zinc-200 dark:border-zinc-800">
             <p className="text-zinc-600 dark:text-zinc-400 text-sm">Completed</p>
@@ -332,7 +332,7 @@ export default function SchedulePage() {
                   <label className="block text-sm font-semibold text-black dark:text-white mb-2">Status</label>
                   <select name="status" value={formData.status} onChange={handleInputChange} className="w-full px-4 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white">
                     <option value="scheduled">Scheduled</option>
-                    <option value="in_progress">In Progress</option>
+                    <option value="in-progress">In Progress</option>
                     <option value="completed">Completed</option>
                     <option value="cancelled">Cancelled</option>
                   </select>

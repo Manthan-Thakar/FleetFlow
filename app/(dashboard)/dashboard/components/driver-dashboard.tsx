@@ -6,13 +6,7 @@ import { useOrders } from '@/firebase/hooks/useOrders';
 import { useRoutes } from '@/firebase/hooks/useRoutes';
 import { useDriver } from '@/firebase/hooks/useDriver';
 import { useDriverPerformance } from '@/firebase/hooks/usePerformance';
-
-interface User {
-  displayName: string;
-  email: string;
-  role: string;
-  companyId?: string;
-}
+import type { User } from '@/types';
 
 export default function DriverDashboard({ user }: { user: User }) {
   const { orders, loading: ordersLoading } = useOrders(user.companyId);

@@ -100,13 +100,14 @@ export async function signUp(data: SignUpData): Promise<AuthResponse> {
     // 4. Create Firestore user document
     const userData: Omit<User, 'id'> = {
       email: data.email,
-      displayName: data.displayName || null,
+      displayName: data.displayName || firebaseUser.displayName || data.email,
       role: data.role,
       status: 'active',
+      isProfileComplete: false,
       companyId: userId, // Use user ID as company ID
-      phoneNumber: data.phoneNumber || null,
-      photoURL: firebaseUser.photoURL || null,
-      lastLoginAt: null,
+      phoneNumber: data.phoneNumber || undefined,
+      photoURL: firebaseUser.photoURL || undefined,
+      lastLoginAt: undefined,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -122,7 +123,7 @@ export async function signUp(data: SignUpData): Promise<AuthResponse> {
     const user: User = {
       id: userId,
       ...userData,
-      lastLoginAt: null,
+      lastLoginAt: undefined,
     };
     console.log('User sign-up successful with company:', {
       userId,
@@ -166,13 +167,14 @@ export async function signIn(data: SignInData): Promise<AuthResponse> {
     const user: User = {
       id: userId,
       email: userData.email || firebaseUser.email || '',
-      displayName: userData.displayName || firebaseUser.displayName || '',
-      role: userData.role || '',
+      displayName: userData.displayName || firebaseUser.displayName || userData.email || firebaseUser.email || '',
+      role: userData.role || 'driver',
       status: userData.status || 'active',
+      isProfileComplete: userData.isProfileComplete ?? false,
       companyId: userData.companyId || '',
-      phoneNumber: userData.phoneNumber || null,
-      photoURL: userData.photoURL || null,
-      lastLoginAt: userData.lastLoginAt || null,
+      phoneNumber: userData.phoneNumber || undefined,
+      photoURL: userData.photoURL || undefined,
+      lastLoginAt: userData.lastLoginAt || undefined,
       createdAt: userData.createdAt || new Date(),
       updatedAt: userData.updatedAt || new Date(),
     };
@@ -231,16 +233,17 @@ export async function getCurrentUser(): Promise<User | null> {
 
     const user: User = {
       id: firebaseUser.uid,
-      email: userData?.email || null,
-      displayName: userData?.displayName || null,
+      email: userData?.email || firebaseUser.email || '',
+      displayName: userData?.displayName || firebaseUser.displayName || userData?.email || firebaseUser.email || '',
       role: userData?.role || 'customer',
       status: userData?.status || 'active',
-      companyId: userData?.companyId || null,
-      phoneNumber: userData?.phoneNumber || null,
-      photoURL: userData?.photoURL || null,
-      lastLoginAt: userData?.lastLoginAt || null,
-      createdAt: userData?.createdAt || null,
-      updatedAt: userData?.updatedAt || null,
+      isProfileComplete: userData?.isProfileComplete ?? false,
+      companyId: userData?.companyId || '',
+      phoneNumber: userData?.phoneNumber || undefined,
+      photoURL: userData?.photoURL || undefined,
+      lastLoginAt: userData?.lastLoginAt || undefined,
+      createdAt: userData?.createdAt || new Date(),
+      updatedAt: userData?.updatedAt || new Date(),
     };
 
     return user;

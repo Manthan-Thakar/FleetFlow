@@ -16,6 +16,7 @@ export const cleanData = <T extends Record<string, any>>(data: T): T => {
   }
 
   const cleaned: Record<string, any> = {};
+  const isDate = (value: any): value is Date => value instanceof Date;
 
   for (const key in data) {
     if (Object.prototype.hasOwnProperty.call(data, key)) {
@@ -23,7 +24,7 @@ export const cleanData = <T extends Record<string, any>>(data: T): T => {
 
       if (value === undefined) {
         cleaned[key] = null;
-      } else if (typeof value === 'object' && value !== null && !(value instanceof Date)) {
+      } else if (typeof value === 'object' && value !== null && !isDate(value)) {
         cleaned[key] = cleanData(value);
       } else {
         cleaned[key] = value;
