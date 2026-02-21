@@ -1,8 +1,8 @@
 // lib/services/auth.service.ts
 import {
-  createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signOut,
+  createUserWithEmailAndPassword,
+  signOut as firebaseSignOut,
   sendPasswordResetEmail,
   updateProfile,
   User as FirebaseUser,
@@ -13,212 +13,364 @@ import {
   getDoc,
   updateDoc,
   serverTimestamp,
-  Timestamp,
-  collection,
 } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
-import { User, Company } from '@/types';
+import { User, UserRole } from '@/types';
+
+// ===== Type Definitions =====
 
 export interface SignUpData {
   email: string;
   password: string;
   displayName: string;
+  role: UserRole;
+  companyName?: string; // Optional - defaults to displayName
+  phoneNumber?: string;
 }
 
-export interface CompanyData {
-  name: string;
-  address: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-  phoneNumber: string;
+export interface SignInData {
   email: string;
-  website?: string;
-  taxId?: string;
-  registrationNumber?: string;
-  industry?: string;
-  description?: string;
+  password: string;
 }
 
-export class AuthService {
-  /**
-   * Sign up a new user (Step 1: Create user)
-   */
-  static async signUp(data: SignUpData): Promise<{ user: FirebaseUser; userId: string }> {
-    try {
-      // Create user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        data.email,
-        data.password
+export interface UpdateProfileData {
+  displayName?: string;
+  phoneNumber?: string;
+  photoURL?: string;
+}
+
+export interface AuthResponse {
+  user: User;
+  firebaseUser: FirebaseUser;
+}
+
+// ===== Authentication Service Functions =====
+
+/**
+ * Sign up a new user
+ * Creates Firebase Auth account, Firestore user document, and company document
+ * Company ID = User ID (they are linked)
+ */
+export async function signUp(data: SignUpData): Promise<AuthResponse> {
+  try {
+    // 1. Create Firebase Auth user
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      data.email,
+      data.password
+    );
+    const firebaseUser = userCredential.user;
+    const userId = firebaseUser.uid;
+    console.log('Firebase Auth user created:', userId);
+
+    // 2. Update Firebase Auth profile
+    await updateProfile(firebaseUser, {
+      displayName: data.displayName,
+    });
+    console.log('Firebase Auth profile updated for user:', userId);
+
+    // 3. Create company document
+    // Company ID = User ID (same user who created the company is its owner)
+    const companyData = {
+      id: userId,
+      name: data.companyName || data.displayName,
+      owner: userId, // Owner is the user who created it
+      ownerId: userId,
+      status: 'active',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      createdBy: userId,
+      members: [userId], // Add the creator as a member
+    };
+
+    await setDoc(doc(db, 'companies', userId), companyData);
+    console.log('Firestore company document created with ID:', userId);
+
+    // 4. Create Firestore user document
+    const userData: Omit<User, 'id'> = {
+      email: data.email,
+      displayName: data.displayName,
+      role: data.role,
+      status: 'active',
+      companyId: userId, // Use user ID as company ID
+      phoneNumber: data.phoneNumber,
+      photoURL: firebaseUser.photoURL || undefined,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    await setDoc(doc(db, 'users', userId), {
+      ...userData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    console.log('Firestore user document created for user:', userId);
+
+    // 5. Return user with role
+    const user: User = {
+      id: userId,
+      ...userData,
+    };
+    console.log('User sign-up successful with company:', {
+      userId,
+      companyId: userId,
+      user,
+    });
+
+    return { user, firebaseUser };
+  } catch (error: any) {
+    console.error('Error in signUp:', error);
+    throw new Error(getAuthErrorMessage(error.code));
+  }
+}
+
+/**
+ * Sign in an existing user
+ */
+export async function signIn(data: SignInData): Promise<AuthResponse> {
+  try {
+    // 1. Sign in with Firebase Auth
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      data.email,
+      data.password
+    );
+    const firebaseUser = userCredential.user;
+
+    // 2. Fetch user document from Firestore
+    const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+
+    if (!userDoc.exists()) {
+      // User document doesn't exist - sign out and throw error
+      await firebaseSignOut(auth);
+      throw new Error('User profile not found. Please contact administrator.');
+    }
+
+    const userData = userDoc.data();
+
+    // 3. Check if user is active
+    if (userData.status !== 'active') {
+      await firebaseSignOut(auth);
+      throw new Error(
+        `Your account is ${userData.status}. Please contact administrator.`
       );
+    }
 
-      const firebaseUser = userCredential.user;
+    // 4. Update last login timestamp
+    await updateDoc(doc(db, 'users', firebaseUser.uid), {
+      lastLoginAt: serverTimestamp(),
+    });
 
-      // Update display name
+    // 5. Return user with role
+    const user: User = {
+      id: firebaseUser.uid,
+      email: userData.email,
+      displayName: userData.displayName,
+      role: userData.role,
+      status: userData.status,
+      companyId: userData.companyId,
+      phoneNumber: userData.phoneNumber,
+      photoURL: userData.photoURL,
+      lastLoginAt: userData.lastLoginAt,
+      createdAt: userData.createdAt,
+      updatedAt: userData.updatedAt,
+    };
+
+    return { user, firebaseUser };
+  } catch (error: any) {
+    console.error('Error in signIn:', error);
+    throw new Error(getAuthErrorMessage(error.code));
+  }
+}
+
+/**
+ * Sign out the current user
+ */
+export async function signOut(): Promise<void> {
+  try {
+    await firebaseSignOut(auth);
+  } catch (error: any) {
+    console.error('Error in signOut:', error);
+    throw new Error('Failed to sign out. Please try again.');
+  }
+}
+
+/**
+ * Send password reset email
+ */
+export async function resetPassword(email: string): Promise<void> {
+  try {
+    await sendPasswordResetEmail(auth, email);
+  } catch (error: any) {
+    console.error('Error in resetPassword:', error);
+    throw new Error(getAuthErrorMessage(error.code));
+  }
+}
+
+/**
+ * Get current user with Firestore data
+ * Returns null if not authenticated
+ */
+export async function getCurrentUser(): Promise<User | null> {
+  try {
+    const firebaseUser = auth.currentUser;
+    
+    if (!firebaseUser) {
+      return null;
+    }
+
+    // Fetch user document from Firestore
+    const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+
+    if (!userDoc.exists()) {
+      return null;
+    }
+
+    const userData = userDoc.data();
+
+    const user: User = {
+      id: firebaseUser.uid,
+      email: userData.email,
+      displayName: userData.displayName,
+      role: userData.role,
+      status: userData.status,
+      companyId: userData.companyId,
+      phoneNumber: userData.phoneNumber,
+      photoURL: userData.photoURL,
+      lastLoginAt: userData.lastLoginAt,
+      createdAt: userData.createdAt,
+      updatedAt: userData.updatedAt,
+    };
+
+    return user;
+  } catch (error: any) {
+    console.error('Error in getCurrentUser:', error);
+    return null;
+  }
+}
+
+/**
+ * Update user profile
+ */
+export async function updateUserProfile(
+  userId: string,
+  data: UpdateProfileData
+): Promise<User> {
+  try {
+    const firebaseUser = auth.currentUser;
+
+    if (!firebaseUser || firebaseUser.uid !== userId) {
+      throw new Error('Unauthorized');
+    }
+
+    // 1. Update Firebase Auth profile
+    if (data.displayName || data.photoURL) {
       await updateProfile(firebaseUser, {
         displayName: data.displayName,
+        photoURL: data.photoURL,
       });
-
-      // Create user document in Firestore
-      const userDoc: Omit<User, 'id'> = {
-        email: data.email,
-        displayName: data.displayName,
-        role: 'admin',
-        status: 'active',
-        companyId: '', // Will be set in step 2
-        isProfileComplete: false,
-        createdAt: serverTimestamp() as Timestamp,
-        updatedAt: serverTimestamp() as Timestamp,
-        lastLoginAt: serverTimestamp() as Timestamp,
-      };
-
-      await setDoc(doc(db, 'users', firebaseUser.uid), userDoc);
-
-      return { user: firebaseUser, userId: firebaseUser.uid };
-    } catch (error: any) {
-      console.error('Error signing up:', error);
-      throw new Error(this.getAuthErrorMessage(error.code));
     }
+
+    // 2. Update Firestore user document
+    const updateData: any = {
+      updatedAt: serverTimestamp(),
+    };
+
+    if (data.displayName) updateData.displayName = data.displayName;
+    if (data.phoneNumber) updateData.phoneNumber = data.phoneNumber;
+    if (data.photoURL) updateData.photoURL = data.photoURL;
+
+    await updateDoc(doc(db, 'users', userId), updateData);
+
+    // 3. Fetch and return updated user
+    const user = await getCurrentUser();
+    if (!user) {
+      throw new Error('Failed to fetch updated user');
+    }
+
+    return user;
+  } catch (error: any) {
+    console.error('Error in updateUserProfile:', error);
+    throw new Error('Failed to update profile. Please try again.');
   }
+}
 
-  /**
-   * Complete profile with company details (Step 2)
-   */
-  static async completeProfile(
-    userId: string,
-    companyData: CompanyData
-  ): Promise<{ companyId: string }> {
-    try {
-      // Create a new company document reference with auto-generated ID
-      const companiesRef = collection(db, 'companies');
-      const companyRef = doc(companiesRef);
-      const companyId = companyRef.id;
+/**
+ * Verify user's authentication token
+ */
+export async function verifyAuthToken(
+  idToken: string
+): Promise<{ uid: string; email: string | undefined }> {
+  try {
+    // This should be called from API routes using Firebase Admin SDK
+    // For client-side, we rely on Firebase Auth state
+    const firebaseUser = auth.currentUser;
 
-      const company: Omit<Company, 'id'> = {
-        ...companyData,
-        adminUserId: userId,
-        createdAt: serverTimestamp() as Timestamp,
-        updatedAt: serverTimestamp() as Timestamp,
-      };
-
-      await setDoc(companyRef, company);
-
-      // Update user document with company reference
-      await updateDoc(doc(db, 'users', userId), {
-        companyId: companyId,
-        isProfileComplete: true,
-        updatedAt: serverTimestamp(),
-      });
-
-      return { companyId };
-    } catch (error: any) {
-      console.error('Error completing profile:', error);
-      throw new Error('Failed to create company profile. Please try again.');
+    if (!firebaseUser) {
+      throw new Error('Not authenticated');
     }
+
+    const token = await firebaseUser.getIdToken();
+
+    if (token !== idToken) {
+      throw new Error('Invalid token');
+    }
+
+    return {
+      uid: firebaseUser.uid,
+      email: firebaseUser.email || undefined,
+    };
+  } catch (error: any) {
+    console.error('Error in verifyAuthToken:', error);
+    throw new Error('Token verification failed');
   }
+}
 
-  /**
-   * Sign in with email and password
-   */
-  static async signIn(email: string, password: string): Promise<FirebaseUser> {
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+// ===== Helper Functions =====
 
-      // Update last login time
-      await updateDoc(doc(db, 'users', userCredential.user.uid), {
-        lastLoginAt: serverTimestamp(),
-      });
-
-      return userCredential.user;
-    } catch (error: any) {
-      console.error('Error signing in:', error);
-      throw new Error(this.getAuthErrorMessage(error.code));
-    }
+/**
+ * Convert Firebase error codes to user-friendly messages
+ */
+function getAuthErrorMessage(errorCode: string): string {
+  switch (errorCode) {
+    case 'auth/email-already-in-use':
+      return 'This email is already registered. Please sign in instead.';
+    case 'auth/invalid-email':
+      return 'Invalid email address.';
+    case 'auth/operation-not-allowed':
+      return 'Operation not allowed. Please contact support.';
+    case 'auth/weak-password':
+      return 'Password is too weak. Please use at least 6 characters.';
+    case 'auth/user-disabled':
+      return 'This account has been disabled. Please contact support.';
+    case 'auth/user-not-found':
+      return 'No account found with this email.';
+    case 'auth/wrong-password':
+      return 'Incorrect password. Please try again.';
+    case 'auth/too-many-requests':
+      return 'Too many failed attempts. Please try again later.';
+    case 'auth/network-request-failed':
+      return 'Network error. Please check your connection.';
+    case 'auth/invalid-credential':
+      return 'Invalid email or password.';
+    default:
+      return 'An error occurred. Please try again.';
   }
+}
 
-  /**
-   * Sign out
-   */
-  static async signOut(): Promise<void> {
-    try {
-      await signOut(auth);
-    } catch (error: any) {
-      console.error('Error signing out:', error);
-      throw new Error('Failed to sign out. Please try again.');
-    }
-  }
-
-  /**
-   * Send password reset email
-   */
-  static async sendPasswordResetEmail(email: string): Promise<void> {
-    try {
-      await sendPasswordResetEmail(auth, email);
-    } catch (error: any) {
-      console.error('Error sending password reset email:', error);
-      throw new Error(this.getAuthErrorMessage(error.code));
-    }
-  }
-
-  /**
-   * Get user profile from Firestore
-   */
-  static async getUserProfile(userId: string): Promise<User | null> {
-    try {
-      const userDoc = await getDoc(doc(db, 'users', userId));
-      if (userDoc.exists()) {
-        return { id: userDoc.id, ...userDoc.data() } as User;
-      }
-      return null;
-    } catch (error: any) {
-      console.error('Error getting user profile:', error);
-      throw new Error('Failed to load user profile.');
-    }
-  }
-
-  /**
-   * Get company profile from Firestore
-   */
-  static async getCompanyProfile(companyId: string): Promise<Company | null> {
-    try {
-      const companyDoc = await getDoc(doc(db, 'companies', companyId));
-      if (companyDoc.exists()) {
-        return { id: companyDoc.id, ...companyDoc.data() } as Company;
-      }
-      return null;
-    } catch (error: any) {
-      console.error('Error getting company profile:', error);
-      throw new Error('Failed to load company profile.');
-    }
-  }
-
-  /**
-   * Get user-friendly error messages
-   */
-  private static getAuthErrorMessage(errorCode: string): string {
-    switch (errorCode) {
-      case 'auth/email-already-in-use':
-        return 'This email is already registered. Please sign in instead.';
-      case 'auth/invalid-email':
-        return 'Invalid email address.';
-      case 'auth/operation-not-allowed':
-        return 'Email/password accounts are not enabled.';
-      case 'auth/weak-password':
-        return 'Password is too weak. Please use at least 6 characters.';
-      case 'auth/user-disabled':
-        return 'This account has been disabled.';
-      case 'auth/user-not-found':
-        return 'No account found with this email.';
-      case 'auth/wrong-password':
-        return 'Incorrect password.';
-      case 'auth/too-many-requests':
-        return 'Too many failed attempts. Please try again later.';
-      case 'auth/network-request-failed':
-        return 'Network error. Please check your connection.';
-      default:
-        return 'An error occurred. Please try again.';
-    }
+/**
+ * Get redirect path based on user role
+ */
+export function getRedirectPathByRole(role: UserRole): string {
+  switch (role) {
+    case 'admin':
+    case 'manager':
+      return '/dashboard';
+    case 'driver':
+      return '/dashboard/routes';
+    case 'customer':
+      return '/dashboard/orders';
+    default:
+      return '/dashboard';
   }
 }

@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:api": "node test-auth-api.js",
+    "test:api:ps": "powershell -ExecutionPolicy Bypass -File test-auth-api.ps1"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
