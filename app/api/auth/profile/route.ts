@@ -31,14 +31,14 @@ export async function GET(request: NextRequest) {
     return createSuccessResponse(
       {
         user: {
-          id: user.uid,
-          email: user.email,
-          displayName: userData?.displayName,
-          role: userData?.role,
-          companyId: userData?.companyId,
-          phoneNumber: userData?.phoneNumber,
-          photoURL: userData?.photoURL,
-          status: userData?.status,
+          id: user.uid || '',
+          email: user.email || '',
+          displayName: userData?.displayName || '',
+          role: userData?.role || 'admin',
+          companyId: userData?.companyId || '',
+          phoneNumber: userData?.phoneNumber || null,
+          photoURL: userData?.photoURL || null,
+          status: userData?.status  || 'active',
           createdAt: userData?.createdAt,
           updatedAt: userData?.updatedAt,
         },

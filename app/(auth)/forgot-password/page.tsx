@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, ArrowLeft, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
-import { AuthService } from '@/lib/services/auth.service';
+import { resetPassword } from '@/lib/services/auth.service';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -19,7 +19,7 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      await AuthService.sendPasswordResetEmail(email);
+      await resetPassword(email);
       setSuccess(true);
       setEmail('');
     } catch (err: any) {

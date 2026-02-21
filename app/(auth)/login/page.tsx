@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, Lock, AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
-import { AuthService } from '@/lib/services/auth.service';
+import { signIn } from '@/lib/services/auth.service';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,18 +21,10 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const user = await AuthService.signIn(email, password);
+      const result = await signIn({ email, password });
       
-      // Get user profile to check if profile is complete
-      const userProfile = await AuthService.getUserProfile(user.uid);
-      
-      if (userProfile && !userProfile.isProfileComplete) {
-        // Redirect to complete profile
-        router.push('/register?step=2');
-      } else {
-        // Redirect to dashboard
-        router.push('/dashboard');
-      }
+      // Redirect to dashboard (authenticated users land here)
+      router.push('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Failed to sign in. Please try again.');
     } finally {

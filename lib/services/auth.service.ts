@@ -73,7 +73,7 @@ export async function signUp(data: SignUpData): Promise<AuthResponse> {
     // Company ID = User ID (same user who created the company is its owner)
     const companyData = {
       id: userId,
-      name: data.companyName || data.displayName,
+      name: data.companyName || data.displayName || null,
       owner: userId, // Owner is the user who created it
       ownerId: userId,
       status: 'active',
@@ -81,6 +81,17 @@ export async function signUp(data: SignUpData): Promise<AuthResponse> {
       updatedAt: serverTimestamp(),
       createdBy: userId,
       members: [userId], // Add the creator as a member
+      email: null,
+      phoneNumber: null,
+      address: null,
+      city: null,
+      state: null,
+      zipCode: null,
+      country: null,
+      website: null,
+      industry: null,
+      taxId: null,
+      registrationNumber: null,
     };
 
     await setDoc(doc(db, 'companies', userId), companyData);
@@ -89,12 +100,13 @@ export async function signUp(data: SignUpData): Promise<AuthResponse> {
     // 4. Create Firestore user document
     const userData: Omit<User, 'id'> = {
       email: data.email,
-      displayName: data.displayName,
+      displayName: data.displayName || null,
       role: data.role,
       status: 'active',
       companyId: userId, // Use user ID as company ID
-      phoneNumber: data.phoneNumber,
-      photoURL: firebaseUser.photoURL || undefined,
+      phoneNumber: data.phoneNumber || null,
+      photoURL: firebaseUser.photoURL || null,
+      lastLoginAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -110,6 +122,7 @@ export async function signUp(data: SignUpData): Promise<AuthResponse> {
     const user: User = {
       id: userId,
       ...userData,
+      lastLoginAt: null,
     };
     console.log('User sign-up successful with company:', {
       userId,
@@ -164,16 +177,16 @@ export async function signIn(data: SignInData): Promise<AuthResponse> {
     // 5. Return user with role
     const user: User = {
       id: firebaseUser.uid,
-      email: userData.email,
-      displayName: userData.displayName,
+      email: userData.email || null,
+      displayName: userData.displayName || null,
       role: userData.role,
       status: userData.status,
-      companyId: userData.companyId,
-      phoneNumber: userData.phoneNumber,
-      photoURL: userData.photoURL,
-      lastLoginAt: userData.lastLoginAt,
-      createdAt: userData.createdAt,
-      updatedAt: userData.updatedAt,
+      companyId: userData.companyId || null,
+      phoneNumber: userData.phoneNumber || null,
+      photoURL: userData.photoURL || null,
+      lastLoginAt: userData.lastLoginAt || null,
+      createdAt: userData.createdAt || null,
+      updatedAt: userData.updatedAt || null,
     };
 
     return { user, firebaseUser };
@@ -230,16 +243,16 @@ export async function getCurrentUser(): Promise<User | null> {
 
     const user: User = {
       id: firebaseUser.uid,
-      email: userData.email,
-      displayName: userData.displayName,
-      role: userData.role,
-      status: userData.status,
-      companyId: userData.companyId,
-      phoneNumber: userData.phoneNumber,
-      photoURL: userData.photoURL,
-      lastLoginAt: userData.lastLoginAt,
-      createdAt: userData.createdAt,
-      updatedAt: userData.updatedAt,
+      email: userData?.email || null,
+      displayName: userData?.displayName || null,
+      role: userData?.role || 'customer',
+      status: userData?.status || 'active',
+      companyId: userData?.companyId || null,
+      phoneNumber: userData?.phoneNumber || null,
+      photoURL: userData?.photoURL || null,
+      lastLoginAt: userData?.lastLoginAt || null,
+      createdAt: userData?.createdAt || null,
+      updatedAt: userData?.updatedAt || null,
     };
 
     return user;
