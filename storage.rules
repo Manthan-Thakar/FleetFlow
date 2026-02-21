@@ -1,52 +1,16 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    // Storage rules deferred for later configuration
+    // For now, all authenticated users can read/write
+    // TODO: Add proper security rules based on user roles and company isolation
     
-    // Helper functions
-    function isAuthenticated() {
-      return request.auth != null;
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null;
     }
-    
-    function isAdmin() {
-      return isAuthenticated() && 
-             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-    
-    function isManager() {
-      let userData = firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
-      return isAuthenticated() && (userData.role == 'manager' || userData.role == 'admin');
-    }
-    
-    function belongsToCompany(companyId) {
-      let userData = firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
-      return isAuthenticated() && userData.companyId == companyId;
-    }
-    
-    // User profile photos
-    match /users/{userId}/profile/{fileName} {
-      // Users can read their own photos, admins can read all
-      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-      
-      // Users can upload/update their own photos
-      allow write: if isAuthenticated() && request.auth.uid == userId &&
-                     request.resource.size < 5 * 1024 * 1024 && // 5MB limit
-                     request.resource.contentType.matches('image/.*');
-      
-      allow delete: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-    }
-    
-    // Company files (vehicles, drivers, orders, maintenance)
-    match /companies/{companyId}/{allPaths=**} {
-      // Read: Users in the same company
-      allow read: if belongsToCompany(companyId);
-      
-      // Write: Managers and admins
-      allow write: if isManager() && belongsToCompany(companyId) &&
-                     request.resource.size < 10 * 1024 * 1024; // 10MB limit
-      
-      // Delete: Admins only
-      allow delete: if isAdmin() && belongsToCompany(companyId);
-    }
+  }
+}
+
     
     // Vehicle documents and photos
     match /companies/{companyId}/vehicles/{vehicleId}/{document} {

@@ -1,8 +1,8 @@
 // lib/firebase/config.ts
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, Firestore, connectFirestoreEmulator } from 'firebase/firestore';
-import { getStorage, FirebaseStorage, connectStorageEmulator } from 'firebase/storage';
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 // Firebase configuration from environment variables
 const firebaseConfig = {
@@ -30,39 +30,12 @@ let storage: FirebaseStorage;
 
 if (getApps().length === 0) {
   app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
-  storage = getStorage(app);
-
-  // Connect to emulators in development
-  if (
-    process.env.NODE_ENV === 'development' &&
-    process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === 'true' &&
-    typeof window !== 'undefined'
-  ) {
-    const authEmulatorHost = process.env.NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST;
-    const firestoreEmulatorHost = process.env.NEXT_PUBLIC_FIREBASE_FIRESTORE_EMULATOR_HOST;
-    const storageEmulatorHost = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_EMULATOR_HOST;
-
-    if (authEmulatorHost) {
-      connectAuthEmulator(auth, `http://${authEmulatorHost}`, { disableWarnings: true });
-    }
-    if (firestoreEmulatorHost) {
-      const [host, port] = firestoreEmulatorHost.split(':');
-      connectFirestoreEmulator(db, host, parseInt(port));
-    }
-    if (storageEmulatorHost) {
-      const [host, port] = storageEmulatorHost.split(':');
-      connectStorageEmulator(storage, host, parseInt(port));
-    }
-
-    console.log('🔥 Firebase Emulators connected');
-  }
 } else {
   app = getApps()[0];
-  auth = getAuth(app);
-  db = getFirestore(app);
-  storage = getStorage(app);
 }
+
+auth = getAuth(app);
+db = getFirestore(app,"fleetflow");
+storage = getStorage(app);
 
 export { app, auth, db, storage };
