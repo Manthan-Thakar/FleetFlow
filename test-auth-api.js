@@ -29,7 +29,7 @@ async function testAPI() {
         password: 'SecurePass123',
         displayName: 'Test User',
         role: 'manager',
-        companyId: 'company_001',
+        companyName: 'Test Company', // Optional - defaults to displayName if not provided
         phoneNumber: '+1234567890',
       }),
     });

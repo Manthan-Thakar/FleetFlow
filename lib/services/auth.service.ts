@@ -24,7 +24,7 @@ export interface SignUpData {
   password: string;
   displayName: string;
   role: UserRole;
-  companyId: string;
+  companyName?: string; // Optional - defaults to displayName
   phoneNumber?: string;
 }
 
@@ -48,7 +48,8 @@ export interface AuthResponse {
 
 /**
  * Sign up a new user
- * Creates Firebase Auth account and Firestore user document
+ * Creates Firebase Auth account, Firestore user document, and company document
+ * Company ID = User ID (they are linked)
  */
 export async function signUp(data: SignUpData): Promise<AuthResponse> {
   try {
@@ -59,41 +60,62 @@ export async function signUp(data: SignUpData): Promise<AuthResponse> {
       data.password
     );
     const firebaseUser = userCredential.user;
-    console.log('Firebase Auth user created:', firebaseUser.uid);
+    const userId = firebaseUser.uid;
+    console.log('Firebase Auth user created:', userId);
 
     // 2. Update Firebase Auth profile
     await updateProfile(firebaseUser, {
       displayName: data.displayName,
     });
-    console.log('Firebase Auth profile updated for user:', firebaseUser.uid);
+    console.log('Firebase Auth profile updated for user:', userId);
 
-    // 3. Create Firestore user document
+    // 3. Create company document
+    // Company ID = User ID (same user who created the company is its owner)
+    const companyData = {
+      id: userId,
+      name: data.companyName || data.displayName,
+      owner: userId, // Owner is the user who created it
+      ownerId: userId,
+      status: 'active',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      createdBy: userId,
+      members: [userId], // Add the creator as a member
+    };
+
+    await setDoc(doc(db, 'companies', userId), companyData);
+    console.log('Firestore company document created with ID:', userId);
+
+    // 4. Create Firestore user document
     const userData: Omit<User, 'id'> = {
       email: data.email,
       displayName: data.displayName,
       role: data.role,
       status: 'active',
-      companyId: data.companyId,
+      companyId: userId, // Use user ID as company ID
       phoneNumber: data.phoneNumber,
       photoURL: firebaseUser.photoURL || undefined,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    console.log('Creating Firestore user document for user:', firebaseUser.uid, userData);
 
-    await setDoc(doc(db, 'users', firebaseUser.uid), {
+    await setDoc(doc(db, 'users', userId), {
       ...userData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
-    console.log('Firestore user document created for user:', firebaseUser.uid);
+    console.log('Firestore user document created for user:', userId);
 
-    // 4. Return user with role
+    // 5. Return user with role
     const user: User = {
-      id: firebaseUser.uid,
+      id: userId,
       ...userData,
     };
-    console.log('User sign-up successful:', user);
+    console.log('User sign-up successful with company:', {
+      userId,
+      companyId: userId,
+      user,
+    });
 
     return { user, firebaseUser };
   } catch (error: any) {

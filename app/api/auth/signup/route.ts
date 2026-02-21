@@ -10,14 +10,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Validate required fields
-    const { email, password, displayName, role, companyId } = body;
+    const { email, password, displayName, role, companyName } = body;
 
-    if (!email || !password || !displayName || !role || !companyId) {
+    if (!email || !password || !displayName || !role) {
       return NextResponse.json(
         {
           success: false,
           error: 'Missing required fields',
-          message: 'Email, password, display name, role, and company ID are required',
+          message: 'Email, password, display name, and role are required',
         },
         { status: 400 }
       );

@@ -168,8 +168,8 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>Company ID</label>
-                <input type="text" id="signup-company" value="company_001">
+                <label>Company Name (optional)</label>
+                <input type="text" id="signup-company" value="My Company">
             </div>
             <div class="form-group">
                 <label>Phone Number (optional)</label>
@@ -247,7 +247,7 @@
                         password: document.getElementById('signup-password').value,
                         displayName: document.getElementById('signup-name').value,
                         role: document.getElementById('signup-role').value,
-                        companyId: document.getElementById('signup-company').value,
+                        companyName: document.getElementById('signup-company').value,
                         phoneNumber: document.getElementById('signup-phone').value,
                     }),
                 });
