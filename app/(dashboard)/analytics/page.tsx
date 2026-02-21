@@ -14,51 +14,31 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Calendar,
+  Loader2,
 } from 'lucide-react';
-
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const monthlyData = [
-  { month: 'Jan', revenue: 17, fuelCost: 6, maintenance: 2, netProfit: 9 },
-  { month: 'Feb', revenue: 19, fuelCost: 7, maintenance: 1.5, netProfit: 10.5 },
-  { month: 'Mar', revenue: 22, fuelCost: 8, maintenance: 3, netProfit: 11 },
-  { month: 'Apr', revenue: 20, fuelCost: 7.5, maintenance: 2, netProfit: 10.5 },
-  { month: 'May', revenue: 24, fuelCost: 9, maintenance: 2.5, netProfit: 12.5 },
-  { month: 'Jun', revenue: 21, fuelCost: 8, maintenance: 2, netProfit: 11 },
-];
-
-const fuelTrendData = [
-  { label: 'Jan', kmL: 8.2 },
-  { label: 'Feb', kmL: 9.1 },
-  { label: 'Mar', kmL: 8.7 },
-  { label: 'Apr', kmL: 10.2 },
-  { label: 'May', kmL: 11.5 },
-  { label: 'Jun', kmL: 10.8 },
-  { label: 'Jul', kmL: 12.1 },
-];
-
-const topCostlyVehicles = [
-  { id: 'VAN-03', cost: 92 },
-  { id: 'TRK-01', cost: 78 },
-  { id: 'TRK-02', cost: 65 },
-  { id: 'PKP-01', cost: 48 },
-  { id: 'VAN-01', cost: 35 },
-];
-
-const deadStockVehicles = [
-  { id: 'VAN-02', name: 'Toyota HiAce', idleDays: 23, lastUsed: '2026-01-29' },
-  { id: 'TRK-04', name: 'Tata 407', idleDays: 15, lastUsed: '2026-02-06' },
-];
+import { useAuth } from '@/firebase/hooks/useAuth';
+import { useAnalytics } from '@/firebase/hooks/useAnalytics';
 
 // ─── SVG Line Chart ───────────────────────────────────────────────────────────
 
 function LineChart({ data }: { data: { label: string; kmL: number }[] }) {
   const w = 300, h = 120, pad = 20;
+  if (!data || data.length === 0) {
+    return (
+      <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-32">
+        <text x={w / 2} y={h / 2} textAnchor="middle" fontSize="10" fill="currentColor" opacity="0.6">
+          No data
+        </text>
+      </svg>
+    );
+  }
+
   const maxVal = Math.max(...data.map((d) => d.kmL));
   const minVal = Math.min(...data.map((d) => d.kmL));
   const range = maxVal - minVal || 1;
+  const denom = Math.max(1, data.length - 1);
   const pts = data.map((d, i) => {
-    const x = pad + (i / (data.length - 1)) * (w - pad * 2);
+    const x = pad + (i / denom) * (w - pad * 2);
     const y = pad + ((maxVal - d.kmL) / range) * (h - pad * 2);
     return { x, y, ...d };
   });
@@ -127,15 +107,32 @@ function BarChart({ data }: { data: { id: string; cost: number }[] }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function AnalyticsPage() {
+  const { user } = useAuth();
+  const { fleetAnalytics, fuelAnalytics, costAnalytics, loading } = useAnalytics(user?.companyId);
+  
   const [selectedMonth, setSelectedMonth] = useState('All');
   const months = ['All', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
 
-  const filtered = selectedMonth === 'All' ? monthlyData : monthlyData.filter((m) => m.month === selectedMonth);
+  // Use Firebase analytics data instead of mock data
+  const monthlyData = [];
+  const fuelTrendData = fuelAnalytics?.monthlyTrend || [];
+  const topCostlyVehicles = costAnalytics?.vehicleCosts || [];
+  const deadStockVehicles = fleetAnalytics?.underutilized || [];
 
-  const totalRevenue = filtered.reduce((s, m) => s + m.revenue, 0);
-  const totalFuel = filtered.reduce((s, m) => s + m.fuelCost, 0);
-  const totalMaintenance = filtered.reduce((s, m) => s + m.maintenance, 0);
-  const totalProfit = filtered.reduce((s, m) => s + m.netProfit, 0);
+  const filtered = selectedMonth === 'All' ? monthlyData : monthlyData.filter((m: any) => m.month === selectedMonth);
+
+  const totalRevenue = filtered.reduce((s: number, m: any) => s + m.revenue, 0);
+  const totalFuel = filtered.reduce((s: number, m: any) => s + m.fuelCost, 0);
+  const totalMaintenance = filtered.reduce((s: number, m: any) => s + m.maintenance, 0);
+  const totalProfit = filtered.reduce((s: number, m: any) => s + m.netProfit, 0);
+
+  if (loading) {
+    return (
+      <div className="p-6 lg:p-8 min-h-screen bg-white dark:bg-black flex items-center justify-center">
+        <Loader2 className="animate-spin text-blue-500" size={40} />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 lg:p-8 min-h-screen bg-white dark:bg-black">

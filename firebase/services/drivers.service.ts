@@ -14,21 +14,27 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { Driver, UpdateDriverData, DriverStatus } from '@/types';
+import { cleanData } from '@/firebase/utils/firebaseDataCleaner';
 
 /**
  * Get a single driver by ID
  */
 export const getDriver = async (driverId: string): Promise<Driver> => {
   try {
-    const driverDoc = await getDoc(doc(db, 'drivers', driverId));
+    const driverDoc = await getDoc(doc(db, 'users', driverId));
 
     if (!driverDoc.exists()) {
       throw new Error('Driver not found');
     }
 
+    const data = driverDoc.data();
+    if (data.role !== 'driver') {
+      throw new Error('User is not a driver');
+    }
+
     return {
       id: driverDoc.id,
-      ...driverDoc.data(),
+      ...data,
     } as Driver;
   } catch (error: any) {
     console.error('Error fetching driver:', error);
@@ -136,7 +142,7 @@ export const updateDriver = async (
     if (data.currentVehicleId !== undefined) updateData.currentVehicleId = data.currentVehicleId;
     if (data.status) updateData.status = data.status;
 
-    await updateDoc(doc(db, 'users', driverId), updateData);
+    await updateDoc(doc(db, 'users', driverId), cleanData(updateData));
 
     // Return updated driver
     return getDriver(driverId);
@@ -172,7 +178,7 @@ export const assignVehicleToDriver = async (
   vehicleId: string
 ): Promise<void> => {
   try {
-    await updateDoc(doc(db, 'drivers', driverId), {
+    await updateDoc(doc(db, 'users', driverId), {
       currentVehicleId: vehicleId,
       status: 'available',
       updatedAt: serverTimestamp(),
@@ -188,7 +194,7 @@ export const assignVehicleToDriver = async (
  */
 export const unassignVehicleFromDriver = async (driverId: string): Promise<void> => {
   try {
-    await updateDoc(doc(db, 'drivers', driverId), {
+    await updateDoc(doc(db, 'users', driverId), {
       currentVehicleId: null,
       updatedAt: serverTimestamp(),
     });
@@ -208,7 +214,7 @@ export const updateDriverLocation = async (
   address?: string
 ): Promise<void> => {
   try {
-    await updateDoc(doc(db, 'drivers', driverId), {
+    await updateDoc(doc(db, 'users', driverId), {
       currentLocation: {
         latitude,
         longitude,
@@ -245,7 +251,7 @@ export const updateDriverMetrics = async (
       incidents: metricsUpdate.incidents ?? currentMetrics.incidents,
     };
 
-    await updateDoc(doc(db, 'drivers', driverId), {
+    await updateDoc(doc(db, 'users', driverId), {
       performanceMetrics: updatedMetrics,
       updatedAt: serverTimestamp(),
     });
@@ -278,7 +284,7 @@ export const updateDriverRating = async (
       onTimeDelivery: onTimeDeliveryPercentage ?? currentRatings.onTimeDelivery,
     };
 
-    await updateDoc(doc(db, 'drivers', driverId), {
+    await updateDoc(doc(db, 'users', driverId), {
       ratings: updatedRatings,
       updatedAt: serverTimestamp(),
     });
@@ -293,7 +299,7 @@ export const updateDriverRating = async (
  */
 export const deleteDriver = async (driverId: string): Promise<void> => {
   try {
-    await deleteDoc(doc(db, 'drivers', driverId));
+    await deleteDoc(doc(db, 'users', driverId));
   } catch (error: any) {
     console.error('Error deleting driver:', error);
     throw new Error(error.message || 'Failed to delete driver');

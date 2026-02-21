@@ -104,7 +104,7 @@ function CompanyTab() {
       <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6">
         <h3 className="font-semibold text-black dark:text-white mb-4">Company Logo</h3>
         <div className="flex items-center gap-6">
-          <div className="w-20 h-20 bg-black dark:bg-white rounded-xl flex items-center justify-center flex-shrink-0">
+          <div className="w-20 h-20 bg-black dark:bg-white rounded-xl flex items-center justify-center shrink-0">
             <span className="text-white dark:text-black font-bold text-2xl">FF</span>
           </div>
           <div>
@@ -186,7 +186,7 @@ function ProfileTab() {
       <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6">
         <h3 className="font-semibold text-black dark:text-white mb-4">Profile Photo</h3>
         <div className="flex items-center gap-6">
-          <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+          <div className="w-20 h-20 bg-linear-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shrink-0">
             <span className="text-white font-bold text-2xl">AS</span>
           </div>
           <div>
@@ -360,7 +360,7 @@ export default function SettingsPage() {
 
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Sidebar Tabs */}
-        <div className="lg:w-56 flex-shrink-0">
+        <div className="lg:w-56 shrink-0">
           <nav className="space-y-1">
             {tabs.map((tab) => (
               <button

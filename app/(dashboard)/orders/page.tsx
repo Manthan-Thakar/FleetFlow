@@ -1,11 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Plus, Search, Filter, ArrowUpDown, Truck, MapPin, Package,
   Eye, Trash2, X, CheckCircle, Clock, AlertCircle, XCircle,
-  Navigation, Fuel, Weight, ChevronDown
+  Navigation, Fuel, Weight, ChevronDown, Loader2
 } from 'lucide-react';
+import { useAuth } from '@/firebase/hooks/useAuth';
+import { useOrders } from '@/firebase/hooks/useOrders';
+import { useVehicles } from '@/firebase/hooks/useVehicles';
+import { useCompanyDrivers } from '@/firebase/hooks/useDriver';
+import { Order } from '@/types';
 
 type TripStatus = 'booked' | 'in-transit' | 'delivered' | 'cancelled';
 
@@ -29,21 +34,12 @@ interface Trip {
   notes?: string;
 }
 
-const mockVehicles = [
-  { id: 'v1', name: 'Trailer Truck - MH 02 2017', type: 'Trailer Truck', capacity: 5000 },
-  { id: 'v2', name: 'Pickup Van - MH 12 5678', type: 'Pickup Van', capacity: 1000 },
-  { id: 'v3', name: 'Cargo Truck - MH 98 3456', type: 'Cargo Truck', capacity: 3000 },
-  { id: 'v4', name: 'Mini Truck - MH 45 7890', type: 'Mini Truck', capacity: 1500 },
-];
-
-const mockDrivers = [
-  { id: 'd1', name: 'John Smith' },
-  { id: 'd2', name: 'Mike Johnson' },
-  { id: 'd3', name: 'Robert Davis' },
-  { id: 'd4', name: 'Jennifer Wilson' },
-];
-
 export default function OrdersPage() {
+  const { user } = useAuth();
+  const { orders, loading, analytics, createOrder } = useOrders(user?.companyId);
+  const { vehicles, loading: vehiclesLoading } = useVehicles(user?.companyId);
+  const { drivers, loading: driversLoading } = useCompanyDrivers(user?.companyId);
+  
   const [showDispatchForm, setShowDispatchForm] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -65,76 +61,61 @@ export default function OrdersPage() {
     notes: '',
   });
 
-  const [trips, setTrips] = useState<Trip[]>([
-    {
-      id: '1',
-      tripId: 'TRP-001',
-      fleetType: 'Trailer Truck',
-      vehicleId: 'v1',
-      vehicleName: 'MH 02 2017',
-      vehicleCapacity: 5000,
-      driverId: 'd1',
-      driverName: 'John Smith',
-      origin: 'Mumbai',
-      destination: 'Pune',
-      cargoWeight: 3200,
-      estimatedFuelCost: 4500,
-      status: 'in-transit',
-      dispatchedAt: '2026-02-21T08:00:00',
-      estimatedArrival: '2026-02-21T14:00:00',
-    },
-    {
-      id: '2',
-      tripId: 'TRP-002',
-      fleetType: 'Cargo Truck',
-      vehicleId: 'v3',
-      vehicleName: 'MH 98 3456',
-      vehicleCapacity: 3000,
-      driverId: 'd3',
-      driverName: 'Robert Davis',
-      origin: 'Delhi',
-      destination: 'Jaipur',
-      cargoWeight: 1800,
-      estimatedFuelCost: 6200,
-      status: 'delivered',
-      dispatchedAt: '2026-02-20T07:30:00',
-      completedAt: '2026-02-20T16:45:00',
-    },
-    {
-      id: '3',
-      tripId: 'TRP-003',
-      fleetType: 'Pickup Van',
-      vehicleId: 'v2',
-      vehicleName: 'MH 12 5678',
-      vehicleCapacity: 1000,
-      driverId: 'd2',
-      driverName: 'Mike Johnson',
-      origin: 'Bangalore',
-      destination: 'Chennai',
-      cargoWeight: 750,
-      estimatedFuelCost: 5100,
-      status: 'booked',
-      dispatchedAt: '2026-02-21T10:00:00',
-      estimatedArrival: '2026-02-21T18:00:00',
-    },
-    {
-      id: '4',
-      tripId: 'TRP-004',
-      fleetType: 'Mini Truck',
-      vehicleId: 'v4',
-      vehicleName: 'MH 45 7890',
-      vehicleCapacity: 1500,
-      driverId: 'd4',
-      driverName: 'Jennifer Wilson',
-      origin: 'Hyderabad',
-      destination: 'Visakhapatnam',
-      cargoWeight: 900,
-      estimatedFuelCost: 7800,
-      status: 'cancelled',
-      dispatchedAt: '2026-02-19T09:00:00',
-      notes: 'Cancelled due to route issues',
-    },
-  ]);
+  const [trips, setTrips] = useState<Trip[]>([]);
+
+  const mapOrderStatusToTripStatus = (status: Order['status']): TripStatus => {
+    switch (status) {
+      case 'pending':
+      case 'confirmed':
+        return 'booked';
+      case 'picked-up':
+      case 'in-transit':
+        return 'in-transit';
+      case 'delivered':
+        return 'delivered';
+      case 'cancelled':
+      case 'failed':
+        return 'cancelled';
+      default:
+        return 'booked';
+    }
+  };
+
+  const toIsoString = (value: any): string => {
+    if (!value) return new Date().toISOString();
+    if (value instanceof Date) return value.toISOString();
+    if (value.toDate) return value.toDate().toISOString();
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+  };
+
+  useEffect(() => {
+    const driverNameById = new Map(drivers.map(d => [d.id, d.displayName]));
+    const vehicleById = new Map(vehicles.map(v => [v.id, v]));
+
+    setTrips(
+      orders.map(order => {
+        const vehicle = order.assignedVehicleId ? vehicleById.get(order.assignedVehicleId) : undefined;
+        return {
+          id: order.id,
+          tripId: order.orderNumber || `TRP-${order.id.slice(0, 6).toUpperCase()}`,
+          fleetType: vehicle?.type || '',
+          vehicleId: order.assignedVehicleId || '',
+          vehicleName: vehicle?.registrationNumber || '',
+          vehicleCapacity: vehicle?.capacity?.weight || 0,
+          driverId: order.assignedDriverId || '',
+          driverName: order.assignedDriverId ? (driverNameById.get(order.assignedDriverId) || '') : '',
+          origin: order.pickupLocation?.address || '',
+          destination: order.deliveryLocation?.address || '',
+          cargoWeight: order.totalWeight || 0,
+          estimatedFuelCost: order.pricing?.totalPrice || 0,
+          status: mapOrderStatusToTripStatus(order.status),
+          dispatchedAt: toIsoString(order.createdAt),
+          notes: order.specialInstructions || undefined,
+        };
+      })
+    );
+  }, [orders, drivers, vehicles]);
 
   const getStatusConfig = (status: TripStatus) => {
     switch (status) {
@@ -156,43 +137,82 @@ export default function OrdersPage() {
     if (name === 'cargoWeight' || name === 'vehicleId') {
       const vehicleId = name === 'vehicleId' ? value : formData.vehicleId;
       const cargoWeightVal = name === 'cargoWeight' ? parseFloat(value) : parseFloat(formData.cargoWeight);
-      const vehicle = mockVehicles.find(v => v.id === vehicleId);
-      if (vehicle && cargoWeightVal > vehicle.capacity) {
-        setCargoError(`Too heavy! This vehicle's max capacity is ${vehicle.capacity.toLocaleString()} kg.`);
+      const vehicle = vehicles.find(v => v.id === vehicleId);
+      if (vehicle && cargoWeightVal > (vehicle.capacity?.weight || 0)) {
+        setCargoError(`Too heavy! This vehicle's max capacity is ${(vehicle.capacity?.weight || 0).toLocaleString()} kg.`);
       } else {
         setCargoError('');
       }
     }
   };
 
-  const handleDispatch = (e: React.FormEvent) => {
+  const handleDispatch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cargoError) return;
+    if (!user?.companyId || !user.id) return;
 
-    const vehicle = mockVehicles.find(v => v.id === formData.vehicleId);
-    const driver = mockDrivers.find(d => d.id === formData.driverId);
+    const vehicle = vehicles.find(v => v.id === formData.vehicleId);
+    const driver = drivers.find(d => d.id === formData.driverId);
 
-    const newTrip: Trip = {
-      id: Date.now().toString(),
-      tripId: `TRP-${String(trips.length + 1).padStart(3, '0')}`,
-      fleetType: vehicle?.type || '',
-      vehicleId: formData.vehicleId,
-      vehicleName: vehicle?.name.split(' - ')[1] || '',
-      vehicleCapacity: vehicle?.capacity || 0,
-      driverId: formData.driverId,
-      driverName: driver?.name || '',
-      origin: formData.origin,
-      destination: formData.destination,
-      cargoWeight: parseFloat(formData.cargoWeight),
-      estimatedFuelCost: parseFloat(formData.estimatedFuelCost) || 0,
-      status: 'booked',
-      dispatchedAt: new Date().toISOString(),
-      notes: formData.notes || undefined,
-    };
+    const now = new Date();
+    const orderNumber = `TRP-${String(orders.length + 1).padStart(3, '0')}`;
+    const cargoWeight = parseFloat(formData.cargoWeight) || 0;
+    const estimatedFuelCost = parseFloat(formData.estimatedFuelCost) || 0;
 
-    setTrips(prev => [newTrip, ...prev]);
-    setShowDispatchForm(false);
-    resetForm();
+    try {
+      await createOrder({
+        companyId: user.companyId,
+        orderNumber,
+        customerId: user.id,
+        customerName: user.displayName || 'Company User',
+        customerPhone: user.phoneNumber || 'N/A',
+        customerEmail: user.email || undefined,
+        pickupLocation: {
+          address: formData.origin,
+          latitude: 0,
+          longitude: 0,
+        },
+        deliveryLocation: {
+          address: formData.destination,
+          latitude: 0,
+          longitude: 0,
+        },
+        items: [
+          {
+            name: 'Cargo',
+            description: formData.notes || undefined,
+            quantity: 1,
+            weight: cargoWeight,
+          },
+        ],
+        totalWeight: cargoWeight,
+        totalValue: 0,
+        status: 'confirmed',
+        priority: 'medium',
+        assignedVehicleId: formData.vehicleId || undefined,
+        assignedDriverId: formData.driverId || undefined,
+        tracking: [
+          {
+            status: 'confirmed',
+            timestamp: now,
+            updatedBy: user.id,
+            notes: 'Trip created',
+          },
+        ],
+        pricing: {
+          basePrice: estimatedFuelCost,
+          totalPrice: estimatedFuelCost,
+          currency: 'INR',
+        },
+        paymentStatus: 'pending',
+        specialInstructions: formData.notes || undefined,
+      });
+
+      setShowDispatchForm(false);
+      resetForm();
+    } catch (error) {
+      console.error('Failed to create order:', error);
+    }
   };
 
   const handleDelete = () => {
@@ -242,7 +262,7 @@ export default function OrdersPage() {
     </button>
   );
 
-  const selectedVehicle = mockVehicles.find(v => v.id === formData.vehicleId);
+  const selectedVehicle = vehicles.find(v => v.id === formData.vehicleId);
 
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950">
@@ -367,7 +387,7 @@ export default function OrdersPage() {
                     <td className="px-4 py-4 text-sm text-zinc-500 dark:text-zinc-400 font-mono">{idx + 1}</td>
                     <td className="px-4 py-4">
                       <div className="flex items-center space-x-3">
-                        <div className="w-9 h-9 bg-black dark:bg-white rounded-lg flex items-center justify-center flex-shrink-0">
+                        <div className="w-9 h-9 bg-black dark:bg-white rounded-lg flex items-center justify-center shrink-0">
                           <Truck className="text-white dark:text-black" size={18} />
                         </div>
                         <div>
@@ -381,13 +401,13 @@ export default function OrdersPage() {
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center space-x-1 text-sm text-black dark:text-white">
-                        <MapPin size={13} className="text-zinc-400 flex-shrink-0" />
+                        <MapPin size={13} className="text-zinc-400 shrink-0" />
                         <span>{trip.origin}</span>
                       </div>
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center space-x-1 text-sm text-black dark:text-white">
-                        <Navigation size={13} className="text-zinc-400 flex-shrink-0" />
+                        <Navigation size={13} className="text-zinc-400 shrink-0" />
                         <span>{trip.destination}</span>
                       </div>
                     </td>
@@ -481,15 +501,15 @@ export default function OrdersPage() {
                       className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white appearance-none"
                     >
                       <option value="">-- Select a vehicle --</option>
-                      {mockVehicles.map(v => (
-                        <option key={v.id} value={v.id}>{v.name} (max {v.capacity.toLocaleString()} kg)</option>
+                      {vehicles.map(v => (
+                        <option key={v.id} value={v.id}>{v.registrationNumber} (max {(v.capacity?.weight || 0).toLocaleString()} kg)</option>
                       ))}
                     </select>
                     <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
                   </div>
                   {selectedVehicle && (
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5">
-                      Capacity: <span className="font-semibold">{selectedVehicle.capacity.toLocaleString()} kg</span>
+                      Capacity: <span className="font-semibold">{(selectedVehicle.capacity?.weight || 0).toLocaleString()} kg</span>
                     </p>
                   )}
                 </div>
@@ -533,8 +553,8 @@ export default function OrdersPage() {
                       className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white appearance-none"
                     >
                       <option value="">-- Select a driver --</option>
-                      {mockDrivers.map(d => (
-                        <option key={d.id} value={d.id}>{d.name}</option>
+                      {drivers.map(d => (
+                        <option key={d.id} value={d.id}>{d.displayName}</option>
                       ))}
                     </select>
                     <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
@@ -668,7 +688,7 @@ export default function OrdersPage() {
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-0.5">From</p>
                     <p className="font-semibold text-black dark:text-white">{selectedTrip.origin}</p>
                   </div>
-                  <Navigation size={20} className="text-zinc-400 flex-shrink-0" />
+                  <Navigation size={20} className="text-zinc-400 shrink-0" />
                   <div className="flex-1 bg-zinc-100 dark:bg-zinc-800 p-3 rounded-lg">
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-0.5">To</p>
                     <p className="font-semibold text-black dark:text-white">{selectedTrip.destination}</p>

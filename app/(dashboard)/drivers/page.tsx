@@ -398,7 +398,7 @@ export default function DriversPage() {
                     <User className="text-white dark:text-black" size={24} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-black dark:text-white">{driver.name}</h3>
+                    <h3 className="font-bold text-black dark:text-white">{driver.displayName}</h3>
                     <p className="text-sm text-zinc-600 dark:text-zinc-400">{driver.licenseNumber}</p>
                   </div>
                 </div>
@@ -761,7 +761,7 @@ export default function DriversPage() {
                   <User className="text-white dark:text-black" size={28} />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-black dark:text-white">{selectedDriver.name}</h2>
+                  <h2 className="text-2xl font-bold text-black dark:text-white">{selectedDriver.displayName}</h2>
                   <p className="text-sm text-zinc-600 dark:text-zinc-400">{selectedDriver.email}</p>
                 </div>
               </div>

@@ -123,7 +123,7 @@ export default function Sidebar({ user }: { user: User }) {
         isMobileOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         {/* Logo Section */}
-        <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex-shrink-0">
+        <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
           <Link href="/dashboard" className="flex items-center space-x-2">
             <div className="w-10 h-10 bg-black dark:bg-white rounded-lg flex items-center justify-center">
               <span className="text-white dark:text-black font-bold">FF</span>
@@ -148,14 +148,14 @@ export default function Sidebar({ user }: { user: User }) {
                   : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
               }`}
             >
-              <span className="flex-shrink-0">{item.icon}</span>
+              <span className="shrink-0">{item.icon}</span>
               <span className="text-sm font-medium">{item.label}</span>
             </Link>
           ))}
         </nav>
 
         {/* User Profile Section */}
-        <div className="border-t border-zinc-200 dark:border-zinc-800 p-4 space-y-3 flex-shrink-0">
+        <div className="border-t border-zinc-200 dark:border-zinc-800 p-4 space-y-3 shrink-0">
           {/* User Info */}
           <div className="px-4 py-3 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
             <p className="text-sm font-medium text-black dark:text-white truncate">

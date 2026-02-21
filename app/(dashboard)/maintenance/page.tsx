@@ -1,7 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Search, Wrench, Edit, Trash2, Eye, X, Calendar, Filter, AlertCircle, CheckCircle, Clock, XCircle, Truck, DollarSign } from 'lucide-react';
+import { Plus, Search, Wrench, Edit, Trash2, Eye, X, Calendar, Filter, AlertCircle, CheckCircle, Clock, XCircle, Truck, DollarSign, Loader2 } from 'lucide-react';
+import { useAuth } from '@/firebase/hooks/useAuth';
+import { useMaintenance } from '@/firebase/hooks/useMaintenance';
+import { Maintenance } from '@/types';
 
 interface MaintenanceLog {
   id: string;
@@ -32,6 +35,15 @@ interface MaintenanceLog {
 }
 
 export default function MaintenancePage() {
+  const { user } = useAuth();
+  const {
+    maintenanceRecords,
+    loading,
+    analytics,
+    createMaintenance,
+    deleteMaintenance,
+  } = useMaintenance(user?.companyId);
+  
   const [showAddModal, setShowAddModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -61,134 +73,71 @@ export default function MaintenancePage() {
     notes: '',
   });
 
-  // Mock data
-  const [maintenanceLogs, setMaintenanceLogs] = useState<MaintenanceLog[]>([
-    {
-      id: '1',
-      logId: '321',
-      vehicleId: 'v1',
-      vehicleName: 'TATA',
-      vehicleNumber: 'MH 02 2017',
-      type: 'repair',
-      category: 'engine',
-      issueService: 'Engine Issue',
-      description: 'Engine overheating, needs coolant system check',
-      status: 'in-progress',
-      scheduledDate: '2026-02-20',
-      cost: {
-        labor: 5000,
-        parts: 5000,
-        total: 10000,
-      },
-      serviceProvider: {
-        name: 'Auto Service Center',
-        contact: '+1 234-567-8900',
-        location: 'Mumbai',
-      },
-      mileage: 45230,
-      performedBy: 'Mechanic A',
-      notes: 'Urgent repair needed',
-    },
-    {
-      id: '2',
-      logId: '322',
-      vehicleId: 'v2',
-      vehicleName: 'Mahindra Bolero',
-      vehicleNumber: 'MH 12 5678',
-      type: 'routine',
-      category: 'brakes',
-      issueService: 'Brake Service',
-      description: 'Regular brake pad replacement',
-      status: 'completed',
-      scheduledDate: '2026-02-15',
-      completedDate: '2026-02-15',
-      cost: {
-        labor: 2000,
-        parts: 3000,
-        total: 5000,
-      },
-      serviceProvider: {
-        name: 'Quick Fix Service',
-        contact: '+1 234-567-8901',
-        location: 'Pune',
-      },
-      mileage: 32100,
-      performedBy: 'Mechanic B',
-    },
-    {
-      id: '3',
-      logId: '323',
-      vehicleId: 'v3',
-      vehicleName: 'Maruti Eeco',
-      vehicleNumber: 'GJ 01 9876',
-      type: 'inspection',
-      category: 'other',
-      issueService: 'Annual Inspection',
-      description: 'Yearly vehicle inspection and certification',
-      status: 'scheduled',
-      scheduledDate: '2026-02-25',
-      cost: {
-        labor: 1000,
-        parts: 0,
-        total: 1000,
-      },
-      serviceProvider: {
-        name: 'RTO Inspection Center',
-        contact: '+1 234-567-8902',
-        location: 'Ahmedabad',
-      },
-      mileage: 28500,
-    },
-  ]);
+  // Use Firebase data instead of mock data
+  const maintenanceLogs = maintenanceRecords as MaintenanceLog[];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user?.companyId) return;
     
     const laborCost = parseFloat(formData.laborCost) || 0;
     const partsCost = parseFloat(formData.partsCost) || 0;
     
-    const newLog: MaintenanceLog = {
-      id: String(maintenanceLogs.length + 1),
-      logId: String(321 + maintenanceLogs.length),
-      vehicleId: `v${maintenanceLogs.length + 1}`,
-      vehicleName: formData.vehicleName,
-      vehicleNumber: formData.vehicleNumber,
-      type: formData.type,
-      category: formData.category,
-      issueService: formData.issueService,
-      description: formData.description,
-      status: formData.status,
-      scheduledDate: formData.scheduledDate,
-      cost: {
-        labor: laborCost,
-        parts: partsCost,
-        total: laborCost + partsCost,
-      },
-      serviceProvider: {
-        name: formData.serviceProvider,
-        contact: formData.serviceContact,
-        location: formData.serviceLocation,
-      },
-      mileage: parseFloat(formData.mileage) || 0,
-      performedBy: formData.performedBy,
-      notes: formData.notes,
-    };
+    const notesParts = [formData.notes, formData.issueService ? `Issue: ${formData.issueService}` : '']
+      .filter(Boolean)
+      .join('\n');
 
-    setMaintenanceLogs(prev => [newLog, ...prev]);
-    setShowNewServiceForm(false);
-    resetForm();
+    try {
+      await createMaintenance({
+        companyId: user.companyId,
+        vehicleId: formData.vehicleNumber || formData.vehicleName || 'unknown',
+        type: formData.type,
+        category: formData.category,
+        description: formData.description,
+        status: formData.status,
+        priority: 'medium',
+        scheduledDate: formData.scheduledDate ? new Date(formData.scheduledDate) : new Date(),
+        serviceProvider: {
+          name: formData.serviceProvider,
+          contact: formData.serviceContact || undefined,
+          location: formData.serviceLocation || undefined,
+        },
+        cost: {
+          labor: laborCost,
+          parts: partsCost,
+          total: laborCost + partsCost,
+          currency: 'INR',
+        },
+        mileage: parseFloat(formData.mileage) || 0,
+        performedBy: formData.performedBy || undefined,
+        notes: notesParts || undefined,
+        // Extra UI fields preserved in Firestore
+        vehicleName: formData.vehicleName,
+        vehicleNumber: formData.vehicleNumber,
+        issueService: formData.issueService,
+      } as unknown as Maintenance);
+
+      setShowNewServiceForm(false);
+      resetForm();
+    } catch (error) {
+      console.error('Failed to create maintenance record:', error);
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (selectedLog) {
-      setMaintenanceLogs(prev => prev.filter(log => log.id !== selectedLog.id));
-      setShowDeleteModal(false);
-      setSelectedLog(null);
+      try {
+        await deleteMaintenance(selectedLog.id);
+        setShowDeleteModal(false);
+        setSelectedLog(null);
+      } catch (error) {
+        console.error('Failed to delete maintenance record:', error);
+      }
     }
   };
 
@@ -275,7 +224,7 @@ export default function MaintenancePage() {
       {/* Info Banner */}
       <div className="mx-6 mt-6 lg:mx-8 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
         <div className="flex items-start space-x-3">
-          <AlertCircle className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" size={20} />
+          <AlertCircle className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" size={20} />
           <div className="text-sm text-blue-800 dark:text-blue-300">
             <p className="font-semibold mb-1">Auto-Hide Rule:</p>
             <p>When you add a vehicle to a maintenance log, it automatically marks as "In Shop". This prevents dispatchers from accidentally assigning it to new trips while under service.</p>
@@ -476,7 +425,7 @@ export default function MaintenancePage() {
             {/* Modal Header */}
             <div className="sticky top-0 bg-white dark:bg-zinc-900 rounded-t-xl flex items-center justify-between p-6 border-b border-zinc-200 dark:border-zinc-800 z-10">
               <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-black dark:bg-white rounded-lg flex items-center justify-center flex-shrink-0">
+                <div className="w-12 h-12 bg-black dark:bg-white rounded-lg flex items-center justify-center shrink-0">
                   <Wrench className="text-white dark:text-black" size={24} />
                 </div>
                 <div>
@@ -490,7 +439,7 @@ export default function MaintenancePage() {
                   resetForm();
                 }}
                 type="button"
-                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors flex-shrink-0 ml-4"
+                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors shrink-0 ml-4"
               >
                 <X size={24} />
               </button>

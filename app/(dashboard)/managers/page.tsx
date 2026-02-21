@@ -21,6 +21,8 @@ import {
   Calendar,
   Users,
 } from 'lucide-react';
+import { useAuth } from '@/firebase/hooks/useAuth';
+import { useUserManagement } from '@/firebase/hooks/useUserManagement';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -40,35 +42,6 @@ interface Manager {
   vehiclesManaged: number;
   notes?: string;
 }
-
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const initialManagers: Manager[] = [
-  {
-    id: '1', managerId: 'MGR-001', name: 'Rajesh Kumar', email: 'rajesh.kumar@fleetflow.in',
-    phone: '+91 98765 11001', department: 'North Zone Operations', location: 'Delhi',
-    joinDate: '2022-03-15', status: 'active', driversManaged: 12, vehiclesManaged: 8,
-    notes: 'Senior manager handling north zone logistics.',
-  },
-  {
-    id: '2', managerId: 'MGR-002', name: 'Priya Sharma', email: 'priya.sharma@fleetflow.in',
-    phone: '+91 98765 22002', department: 'South Zone Operations', location: 'Chennai',
-    joinDate: '2021-07-20', status: 'active', driversManaged: 15, vehiclesManaged: 10,
-    notes: 'Specialises in last-mile delivery management.',
-  },
-  {
-    id: '3', managerId: 'MGR-003', name: 'Amit Patel', email: 'amit.patel@fleetflow.in',
-    phone: '+91 98765 33003', department: 'West Zone Operations', location: 'Mumbai',
-    joinDate: '2023-01-10', status: 'on-leave', driversManaged: 9, vehiclesManaged: 6,
-    notes: 'On medical leave until Feb 2026.',
-  },
-  {
-    id: '4', managerId: 'MGR-004', name: 'Sunita Reddy', email: 'sunita.reddy@fleetflow.in',
-    phone: '+91 98765 44004', department: 'East Zone Operations', location: 'Kolkata',
-    joinDate: '2020-11-05', status: 'inactive', driversManaged: 0, vehiclesManaged: 0,
-    notes: 'Currently on sabbatical.',
-  },
-];
 
 const departments = [
   'North Zone Operations', 'South Zone Operations', 'West Zone Operations',
@@ -141,7 +114,18 @@ function SelectField({ label, value, onChange, options }: {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ManagersPage() {
-  const [managers, setManagers] = useState<Manager[]>(initialManagers);
+  const { user } = useAuth();
+  const {
+    members,
+    loading,
+    error,
+    addMember,
+    deleteMember,
+    updateProfile,
+    updateStatus,
+    fetchUsers,
+  } = useUserManagement(user?.companyId);
+
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | ManagerStatus>('all');
   const [sortField, setSortField] = useState<keyof Manager>('name');
@@ -155,6 +139,38 @@ export default function ManagersPage() {
   const [selectedManager, setSelectedManager] = useState<Manager | null>(null);
   const [formData, setFormData] = useState(emptyForm);
   const [saved, setSaved] = useState(false);
+
+  const toManagerStatus = (status?: string): ManagerStatus => {
+    if (status === 'active') return 'active';
+    if (status === 'inactive') return 'inactive';
+    return 'on-leave';
+  };
+
+  const toUserStatus = (status: ManagerStatus): 'active' | 'inactive' =>
+    status === 'active' ? 'active' : 'inactive';
+
+  const formatDate = (value: any): string => {
+    if (!value) return '';
+    const date = value instanceof Date ? value : value.toDate ? value.toDate() : new Date(value);
+    return Number.isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
+  };
+
+  const managers: Manager[] = members
+    .filter((m) => m.role === 'manager')
+    .map((m) => ({
+      id: m.id,
+      managerId: (m as any).managerId || `MGR-${m.id.slice(0, 6).toUpperCase()}`,
+      name: (m as any).displayName || (m as any).name || '—',
+      email: m.email,
+      phone: (m as any).phoneNumber || (m as any).phone || '',
+      department: (m as any).department || departments[0],
+      location: (m as any).location || locations[0],
+      joinDate: formatDate((m as any).createdAt),
+      status: toManagerStatus(m.status),
+      driversManaged: (m as any).driversManaged ?? 0,
+      vehiclesManaged: (m as any).vehiclesManaged ?? 0,
+      notes: (m as any).notes || '',
+    }));
 
   // ── derived data ──
   const filtered = managers
@@ -202,31 +218,54 @@ export default function ManagersPage() {
     setShowForm(true);
   };
 
-  const handleSubmit = () => {
-    if (!formData.name.trim() || !formData.email.trim()) return;
+  const handleSubmit = async () => {
+    if (!user?.companyId || !formData.name.trim() || !formData.email.trim()) return;
+
     if (editingId) {
-      setManagers((prev) => prev.map((m) => m.id === editingId ? {
-        ...m, name: formData.name, email: formData.email, phone: formData.phone,
-        department: formData.department, location: formData.location, joinDate: formData.joinDate,
-        status: formData.status, driversManaged: Number(formData.driversManaged) || 0,
-        vehiclesManaged: Number(formData.vehiclesManaged) || 0, notes: formData.notes,
-      } : m));
+      const updatePayload: Record<string, any> = {
+        displayName: formData.name,
+        phoneNumber: formData.phone,
+        department: formData.department,
+        location: formData.location,
+        notes: formData.notes,
+        driversManaged: Number(formData.driversManaged) || 0,
+        vehiclesManaged: Number(formData.vehiclesManaged) || 0,
+      };
+      await updateProfile(editingId, updatePayload as any);
+      await updateStatus(editingId, toUserStatus(formData.status) as any);
+      await fetchUsers(user.companyId);
     } else {
-      const newId = `MGR-${String(managers.length + 1).padStart(3, '0')}`;
-      setManagers((prev) => [...prev, {
-        id: String(Date.now()), managerId: newId, name: formData.name, email: formData.email,
-        phone: formData.phone, department: formData.department, location: formData.location,
-        joinDate: formData.joinDate || new Date().toISOString().split('T')[0],
-        status: formData.status, driversManaged: Number(formData.driversManaged) || 0,
-        vehiclesManaged: Number(formData.vehiclesManaged) || 0, notes: formData.notes,
-      }]);
+      const managerId = `MGR-${String(managers.length + 1).padStart(3, '0')}`;
+      const joinDate = formData.joinDate ? new Date(formData.joinDate) : new Date();
+      await addMember({
+        companyId: user.companyId,
+        name: formData.name,
+        displayName: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        phoneNumber: formData.phone,
+        role: 'manager',
+        department: formData.department,
+        location: formData.location,
+        status: toUserStatus(formData.status),
+        joinDate,
+        managerId,
+        driversManaged: Number(formData.driversManaged) || 0,
+        vehiclesManaged: Number(formData.vehiclesManaged) || 0,
+        notes: formData.notes,
+        permissions: [],
+      } as any);
+      await fetchUsers(user.companyId);
     }
+
     setSaved(true);
     setTimeout(() => { setSaved(false); setShowForm(false); }, 900);
   };
 
-  const handleDelete = () => {
-    if (selectedManager) setManagers((prev) => prev.filter((m) => m.id !== selectedManager.id));
+  const handleDelete = async () => {
+    if (selectedManager) {
+      await deleteMember(selectedManager.id);
+    }
     setShowDelete(false);
     setSelectedManager(null);
   };
@@ -250,13 +289,19 @@ export default function ManagersPage() {
         </button>
       </div>
 
+      {error && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
+          {error}
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
-          { label: 'Total Managers', value: stats.total, icon: <UserCog size={20} />, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-950/30' },
-          { label: 'Active', value: stats.active, icon: <CheckCircle size={20} />, color: 'text-green-500', bg: 'bg-green-50 dark:bg-green-950/30' },
-          { label: 'On Leave', value: stats.onLeave, icon: <Calendar size={20} />, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-950/30' },
-          { label: 'Inactive', value: stats.inactive, icon: <Shield size={20} />, color: 'text-zinc-500', bg: 'bg-zinc-100 dark:bg-zinc-800' },
+          { label: 'Total Managers', value: loading ? '—' : stats.total, icon: <UserCog size={20} />, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-950/30' },
+          { label: 'Active', value: loading ? '—' : stats.active, icon: <CheckCircle size={20} />, color: 'text-green-500', bg: 'bg-green-50 dark:bg-green-950/30' },
+          { label: 'On Leave', value: loading ? '—' : stats.onLeave, icon: <Calendar size={20} />, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-950/30' },
+          { label: 'Inactive', value: loading ? '—' : stats.inactive, icon: <Shield size={20} />, color: 'text-zinc-500', bg: 'bg-zinc-100 dark:bg-zinc-800' },
         ].map((s) => (
           <div key={s.label} className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5">
             <div className={`${s.bg} ${s.color} w-10 h-10 rounded-lg flex items-center justify-center mb-3`}>{s.icon}</div>
@@ -312,7 +357,9 @@ export default function ManagersPage() {
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-zinc-500">No managers found</td>
+                  <td colSpan={7} className="px-6 py-12 text-center text-zinc-500">
+                    {loading ? 'Loading managers...' : 'No managers found'}
+                  </td>
                 </tr>
               ) : filtered.map((m) => {
                 const cfg = getStatusConfig(m.status);

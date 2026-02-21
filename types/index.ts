@@ -369,6 +369,112 @@ export interface Maintenance extends CompanyDocument {
   performedBy?: string;
 }
 
+// ===== Schedule Types =====
+
+export type ShiftStatus = 'scheduled' | 'in-progress' | 'completed' | 'cancelled' | 'no-show';
+export type ShiftType = 'morning' | 'afternoon' | 'night' | 'full-day';
+
+export interface Shift extends CompanyDocument {
+  driverId: string;
+  driverName: string;
+  type: ShiftType;
+  startTime: Timestamp | Date;
+  endTime: Timestamp | Date;
+  status: ShiftStatus;
+  vehicleId?: string;
+  routeId?: string;
+  breakDuration?: number; // in minutes
+  actualStartTime?: Timestamp | Date;
+  actualEndTime?: Timestamp | Date;
+  notes?: string;
+}
+
+export interface ScheduleWeek {
+  weekStart: Timestamp | Date;
+  weekEnd: Timestamp | Date;
+  shifts: Shift[];
+}
+
+// ===== Performance Types =====
+
+export interface PerformanceKPI {
+  label: string;
+  value: number;
+  unit: string;
+  threshold?: number;
+  status: 'good' | 'warning' | 'critical';
+}
+
+export interface DriverPerformance extends CompanyDocument {
+  driverId: string;
+  driverName: string;
+  period: 'weekly' | 'monthly' | 'yearly';
+  startDate: Timestamp | Date;
+  endDate: Timestamp | Date;
+  totalTrips: number;
+  totalDistance: number;
+  totalHours: number;
+  avgSpeed: number;
+  fuelEfficiency: number;
+  onTimeDeliveryRate: number;
+  incidentCount: number;
+  customerSatisfactionRate: number;
+  safetyScore: number;
+  complianceScore: number;
+  kpis: PerformanceKPI[];
+}
+
+export interface FleetPerformance extends CompanyDocument {
+  period: 'weekly' | 'monthly' | 'yearly';
+  startDate: Timestamp | Date;
+  endDate: Timestamp | Date;
+  totalVehicles: number;
+  activeVehicles: number;
+  totalOrders: number;
+  deliveredOrders: number;
+  failedOrders: number;
+  totalDistance: number;
+  totalFuelCost: number;
+  avgFuelEfficiency: number;
+  avgDeliveryTime: number;
+  onTimeDeliveryRate: number;
+  costPerKm: number;
+}
+
+// ===== User Management Types =====
+
+export interface UserProfile extends CompanyDocument {
+  email: string;
+  displayName: string;
+  role: UserRole;
+  status: UserStatus;
+  phoneNumber?: string;
+  photoURL?: string;
+  department?: string;
+  assignedTeam?: string;
+  lastLoginAt?: Timestamp | Date;
+  createdBy?: string;
+}
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  status: UserStatus;
+  joinDate: Timestamp | Date;
+  phoneNumber?: string;
+}
+
+export interface TeamStats {
+  totalAdmins: number;
+  totalManagers: number;
+  totalDrivers: number;
+  totalCustomers: number;
+  activeUsers: number;
+  inactiveUsers: number;
+}
+
 // ===== Notification Types =====
 
 export type NotificationType = 'info' | 'warning' | 'error' | 'success';

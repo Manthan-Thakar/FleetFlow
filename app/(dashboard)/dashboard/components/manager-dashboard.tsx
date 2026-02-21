@@ -2,6 +2,10 @@
 
 import { Truck, Users, MapPin, Package, Activity } from 'lucide-react';
 import Link from 'next/link';
+import { useVehicles } from '@/firebase/hooks/useVehicles';
+import { useOrders } from '@/firebase/hooks/useOrders';
+import { useRoutes } from '@/firebase/hooks/useRoutes';
+import { useCompanyDrivers } from '@/firebase/hooks/useDriver';
 
 interface User {
   displayName: string;
@@ -11,6 +15,21 @@ interface User {
 }
 
 export default function ManagerDashboard({ user }: { user: User }) {
+  const { vehicles, loading: vehiclesLoading } = useVehicles(user.companyId);
+  const { orders, loading: ordersLoading } = useOrders(user.companyId);
+  const { routes, loading: routesLoading } = useRoutes(user.companyId);
+  const { drivers, loading: driversLoading } = useCompanyDrivers(user.companyId);
+
+  const isLoading = vehiclesLoading || ordersLoading || routesLoading || driversLoading;
+
+  const availableVehicles = vehicles.filter(vehicle => vehicle.status === 'active').length;
+  const inTransitOrders = orders.filter(order => order.status === 'in-transit').length;
+  const availableDrivers = drivers.filter(driver => driver.status === 'available').length;
+  const pendingDeliveries = orders.filter(order => order.status === 'pending' || order.status === 'confirmed').length;
+
+  const driverNameById = new Map(drivers.map(driver => [driver.id, driver.displayName]));
+  const activeRoutes = routes.filter(route => route.status === 'in-progress').slice(0, 3);
+
   return (
     <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
       {/* Header */}
@@ -29,7 +48,7 @@ export default function ManagerDashboard({ user }: { user: User }) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-zinc-600 dark:text-zinc-400 text-sm font-medium">Available Vehicles</p>
-                <p className="text-4xl font-bold mt-2">12</p>
+                <p className="text-4xl font-bold mt-2">{isLoading ? '—' : availableVehicles}</p>
               </div>
               <Truck className="text-green-600" size={32} />
             </div>
@@ -39,7 +58,7 @@ export default function ManagerDashboard({ user }: { user: User }) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-zinc-600 dark:text-zinc-400 text-sm font-medium">In Transit</p>
-                <p className="text-4xl font-bold mt-2">8</p>
+                <p className="text-4xl font-bold mt-2">{isLoading ? '—' : inTransitOrders}</p>
               </div>
               <Activity className="text-blue-600" size={32} />
             </div>
@@ -49,7 +68,7 @@ export default function ManagerDashboard({ user }: { user: User }) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-zinc-600 dark:text-zinc-400 text-sm font-medium">Available Drivers</p>
-                <p className="text-4xl font-bold mt-2">6</p>
+                <p className="text-4xl font-bold mt-2">{isLoading ? '—' : availableDrivers}</p>
               </div>
               <Users className="text-purple-600" size={32} />
             </div>
@@ -59,7 +78,7 @@ export default function ManagerDashboard({ user }: { user: User }) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-zinc-600 dark:text-zinc-400 text-sm font-medium">Pending Deliveries</p>
-                <p className="text-4xl font-bold mt-2">24</p>
+                <p className="text-4xl font-bold mt-2">{isLoading ? '—' : pendingDeliveries}</p>
               </div>
               <Package className="text-orange-600" size={32} />
             </div>
@@ -116,18 +135,24 @@ export default function ManagerDashboard({ user }: { user: User }) {
         <div className="bg-zinc-50 dark:bg-zinc-900 rounded-lg p-6 border border-zinc-200 dark:border-zinc-800">
           <h2 className="text-xl font-bold mb-4">Active Routes</h2>
           <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="flex items-center justify-between p-4 border border-zinc-200 dark:border-zinc-700 rounded-lg">
-                <div>
-                  <p className="font-medium">Route #{1000 + i}</p>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">Driver: John Doe • 8 stops</p>
+            {activeRoutes.length > 0 ? (
+              activeRoutes.map(route => (
+                <div key={route.id} className="flex items-center justify-between p-4 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                  <div>
+                    <p className="font-medium">{route.name}</p>
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                      Driver: {route.assignedDriverId ? (driverNameById.get(route.assignedDriverId) || 'Unassigned') : 'Unassigned'} • Stops: {(route.waypoints?.length || 0) + 2}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium text-green-600">In Progress</p>
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">{route.distance.toFixed(1)} km</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-medium text-green-600">In Progress</p>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">2.3 km remaining</p>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <div className="text-sm text-zinc-600 dark:text-zinc-400">No active routes right now.</div>
+            )}
           </div>
         </div>
       </main>

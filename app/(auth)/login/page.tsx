@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, Lock, AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
-import { signIn, getRedirectPathByRole } from '@/lib/services/auth.service';
+import { signIn, getRedirectPathByRole } from '@/firebase/services/auth.service';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase/config';
+import { auth } from '@/firebase/config/firebaseConfig';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -88,7 +88,7 @@ export default function LoginPage() {
           {/* Error Message */}
           {error && (
             <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start space-x-3">
-              <AlertCircle className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" size={20} />
+              <AlertCircle className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" size={20} />
               <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
             </div>
           )}
