@@ -66,8 +66,6 @@ export default function Sidebar({ user }: { user: User }) {
     ],
     driver: [
       { label: 'Dashboard', href: '/dashboard', icon: <Home size={20} /> },
-      { label: 'My Routes', href: '/my-routes', icon: <Map size={20} /> },
-      { label: 'My Vehicle', href: '/my-vehicle', icon: <Truck size={20} /> },
       { label: 'Deliveries', href: '/deliveries', icon: <Package size={20} /> },
       { label: 'Schedule', href: '/schedule', icon: <Calendar size={20} /> },
       { label: 'Performance', href: '/performance', icon: <TrendingUp size={20} /> },

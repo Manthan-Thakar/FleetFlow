@@ -63,6 +63,24 @@ export default function DeliveriesPage() {
     }
   };
 
+  const toDate = (value: any): Date | null => {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+    if (value.toDate) return value.toDate();
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const formatDate = (value: any, options?: Intl.DateTimeFormatOptions) => {
+    const date = toDate(value);
+    return date ? date.toLocaleDateString(undefined, options) : '—';
+  };
+
+  const formatDateTime = (value: any) => {
+    const date = toDate(value);
+    return date ? date.toLocaleString() : '—';
+  };
+
   const filteredDeliveries = deliveries.filter(delivery => {
     const matchesSearch =
       delivery.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -218,7 +236,7 @@ export default function DeliveriesPage() {
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar size={16} className="text-zinc-600 dark:text-zinc-400" />
                     <span className="text-zinc-600 dark:text-zinc-400">
-                      {new Date(delivery.scheduledDeliveryTime).toLocaleDateString()}
+                      {formatDate(delivery.scheduledDeliveryTime)}
                     </span>
                   </div>
                 </div>
@@ -335,7 +353,7 @@ export default function DeliveriesPage() {
                 <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4">
                   <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-1">Scheduled Delivery</p>
                   <p className="text-lg font-semibold text-black dark:text-white">
-                    {new Date(selectedDelivery.scheduledDeliveryTime).toLocaleString()}
+                    {formatDateTime(selectedDelivery.scheduledDeliveryTime)}
                   </p>
                 </div>
               </div>

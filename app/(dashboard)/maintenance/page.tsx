@@ -76,6 +76,19 @@ export default function MaintenancePage() {
   // Use Firebase data instead of mock data
   const maintenanceLogs = maintenanceRecords as MaintenanceLog[];
 
+  const toDate = (value: any): Date | null => {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+    if (value.toDate) return value.toDate();
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const formatDate = (value: any, options?: Intl.DateTimeFormatOptions) => {
+    const date = toDate(value);
+    return date ? date.toLocaleDateString(undefined, options) : '—';
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -354,7 +367,7 @@ export default function MaintenancePage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center space-x-1 text-sm text-black dark:text-white">
                         <Calendar size={14} className="text-zinc-400" />
-                        <span>{new Date(log.scheduledDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })}</span>
+                        <span>{formatDate(log.scheduledDate, { day: '2-digit', month: '2-digit' })}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -828,14 +841,14 @@ export default function MaintenancePage() {
                   <div>
                     <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-1">Scheduled Date</p>
                     <p className="text-base font-semibold text-black dark:text-white">
-                      {new Date(selectedLog.scheduledDate).toLocaleDateString()}
+                      {formatDate(selectedLog.scheduledDate)}
                     </p>
                   </div>
                   {selectedLog.completedDate && (
                     <div>
                       <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-1">Completed Date</p>
                       <p className="text-base font-semibold text-black dark:text-white">
-                        {new Date(selectedLog.completedDate).toLocaleDateString()}
+                        {formatDate(selectedLog.completedDate)}
                       </p>
                     </div>
                   )}

@@ -114,15 +114,23 @@ export default function SchedulePage() {
     return days;
   };
 
+  const toDate = (value: any): Date | null => {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+    if (value.toDate) return value.toDate();
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+
   const formatTime = (date: Date | any) => {
-    if (!date) return '';
-    const d = new Date(date);
+    const d = toDate(date);
+    if (!d) return '—';
     return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
   };
 
   const formatDate = (date: Date | any) => {
-    if (!date) return '';
-    const d = new Date(date);
+    const d = toDate(date);
+    if (!d) return '—';
     return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   };
 
@@ -218,12 +226,16 @@ export default function SchedulePage() {
                 <div key={dayIdx} className="border-r border-zinc-200 dark:border-zinc-800 relative">
                   {filteredShifts
                     .filter((shift) => {
-                      const shiftDate = new Date(shift.startTime);
+                      const shiftDate = toDate(shift.startTime);
+                      if (!shiftDate) return false;
                       return shiftDate.toDateString() === day.toDateString();
                     })
                     .map((shift) => {
-                      const startHour = new Date(shift.startTime).getHours();
-                      const duration = (new Date(shift.endTime).getTime() - new Date(shift.startTime).getTime()) / (1000 * 60 * 60);
+                      const shiftStart = toDate(shift.startTime);
+                      const shiftEnd = toDate(shift.endTime);
+                      if (!shiftStart || !shiftEnd) return null;
+                      const startHour = shiftStart.getHours();
+                      const duration = (shiftEnd.getTime() - shiftStart.getTime()) / (1000 * 60 * 60);
                       return (
                         <div
                           key={shift.id}
@@ -245,7 +257,10 @@ export default function SchedulePage() {
         ) : (
           <div className="space-y-4">
             {filteredShifts
-              .filter((shift) => new Date(shift.startTime).toDateString() === selectedDate.toDateString())
+              .filter((shift) => {
+                const shiftDate = toDate(shift.startTime);
+                return shiftDate ? shiftDate.toDateString() === selectedDate.toDateString() : false;
+              })
               .map((shift) => (
                 <div key={shift.id} className="bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-4 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors">
                   <div className="flex items-start justify-between">
@@ -269,7 +284,10 @@ export default function SchedulePage() {
                   </div>
                 </div>
               ))}
-            {filteredShifts.filter((shift) => new Date(shift.startTime).toDateString() === selectedDate.toDateString()).length === 0 && (
+            {filteredShifts.filter((shift) => {
+              const shiftDate = toDate(shift.startTime);
+              return shiftDate ? shiftDate.toDateString() === selectedDate.toDateString() : false;
+            }).length === 0 && (
               <div className="text-center py-12">
                 <Calendar size={48} className="mx-auto text-zinc-400 mb-4" />
                 <p className="text-zinc-600 dark:text-zinc-400">No shifts scheduled for this day</p>

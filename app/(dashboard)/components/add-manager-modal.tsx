@@ -34,15 +34,15 @@ export default function AddManagerModal({ companyId, companyName, adminName, onS
     setLoading(true);
     setError('');
     setSuccess('');
-
     try {
-      const response = await inviteManager({
+      await inviteManager({
         managerName: formData.managerName,
         managerEmail: formData.managerEmail,
         companyId,
         companyName,
         adminName,
       });
+      
 
       setSuccess(`Invitation sent to ${formData.managerEmail}! Manager account created with temporary password.`);
       setFormData({ managerName: '', managerEmail: '' });

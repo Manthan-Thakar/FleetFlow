@@ -63,6 +63,19 @@ export default function ReportsPage() {
     endDate: new Date(),
   });
 
+  const toDate = (value: any): Date | null => {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+    if (value.toDate) return value.toDate();
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const formatDate = (value: any, options?: Intl.DateTimeFormatOptions) => {
+    const date = toDate(value);
+    return date ? date.toLocaleDateString(undefined, options) : '—';
+  };
+
   // Generate reports from Firebase data
   const [reports, setReports] = useState<Report[]>([
     {
@@ -358,12 +371,12 @@ export default function ReportsPage() {
                           <div className="flex items-center gap-1">
                             <Calendar size={16} />
                             <span>
-                              {report.dateRange.start.toLocaleDateString()} - {report.dateRange.end.toLocaleDateString()}
+                              {formatDate(report.dateRange.start)} - {formatDate(report.dateRange.end)}
                             </span>
                           </div>
                           <div className="flex items-center gap-1">
                             <Clock size={16} />
-                            <span>{report.generatedDate.toLocaleDateString()}</span>
+                            <span>{formatDate(report.generatedDate)}</span>
                           </div>
                         </div>
                       </div>
@@ -510,19 +523,19 @@ export default function ReportsPage() {
                 <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4">
                   <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-1">Generated</p>
                   <p className="text-lg font-semibold text-black dark:text-white">
-                    {selectedReport.generatedDate.toLocaleDateString()}
+                    {formatDate(selectedReport.generatedDate)}
                   </p>
                 </div>
                 <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4">
                   <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-1">Period Start</p>
                   <p className="text-lg font-semibold text-black dark:text-white">
-                    {selectedReport.dateRange.start.toLocaleDateString()}
+                    {formatDate(selectedReport.dateRange.start)}
                   </p>
                 </div>
                 <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-4">
                   <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-1">Period End</p>
                   <p className="text-lg font-semibold text-black dark:text-white">
-                    {selectedReport.dateRange.end.toLocaleDateString()}
+                    {formatDate(selectedReport.dateRange.end)}
                   </p>
                 </div>
               </div>

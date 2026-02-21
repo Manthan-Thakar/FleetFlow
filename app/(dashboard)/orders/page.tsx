@@ -89,6 +89,12 @@ export default function OrdersPage() {
     return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
   };
 
+  const formatDateTime = (value: any): string => {
+    if (!value) return '—';
+    const date = value instanceof Date ? value : value.toDate ? value.toDate() : new Date(value);
+    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString();
+  };
+
   useEffect(() => {
     const driverNameById = new Map(drivers.map(d => [d.id, d.displayName]));
     const vehicleById = new Map(vehicles.map(v => [v.id, v]));
@@ -730,12 +736,12 @@ export default function OrdersPage() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-zinc-500 dark:text-zinc-400">Dispatched</span>
-                    <span className="text-black dark:text-white font-medium">{new Date(selectedTrip.dispatchedAt).toLocaleString()}</span>
+                    <span className="text-black dark:text-white font-medium">{formatDateTime(selectedTrip.dispatchedAt)}</span>
                   </div>
                   {selectedTrip.completedAt && (
                     <div className="flex justify-between">
                       <span className="text-zinc-500 dark:text-zinc-400">Completed</span>
-                      <span className="text-black dark:text-white font-medium">{new Date(selectedTrip.completedAt).toLocaleString()}</span>
+                      <span className="text-black dark:text-white font-medium">{formatDateTime(selectedTrip.completedAt)}</span>
                     </div>
                   )}
                 </div>
