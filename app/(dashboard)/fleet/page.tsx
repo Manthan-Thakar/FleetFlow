@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Search, Truck, Edit, Trash2, Eye, X, Calendar, Gauge, Filter } from 'lucide-react';
+import { Plus, Search, Truck, Edit, Trash2, Eye, X, Calendar, Gauge, Filter, Car, Bike, Bus } from 'lucide-react';
 
 interface Vehicle {
   id: string;
@@ -163,13 +163,14 @@ export default function FleetPage() {
     }
   };
 
-  const getTypeIcon = (type: Vehicle['type']) => {
+  const getTypeIcon = (type: Vehicle['type'], size: number = 24) => {
+    const iconProps = { size };
     switch (type) {
-      case 'truck': return '🚛';
-      case 'van': return '🚐';
-      case 'car': return '🚗';
-      case 'bike': return '🏍️';
-      default: return '🚚';
+      case 'truck': return <Truck {...iconProps} />;
+      case 'van': return <Bus {...iconProps} />;
+      case 'car': return <Car {...iconProps} />;
+      case 'bike': return <Bike {...iconProps} />;
+      default: return <Truck {...iconProps} />;
     }
   };
 
@@ -290,7 +291,9 @@ export default function FleetPage() {
               {/* Vehicle Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-3">
-                  <div className="text-3xl">{getTypeIcon(vehicle.type)}</div>
+                  <div className="w-12 h-12 bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                    <div className="text-white dark:text-black">{getTypeIcon(vehicle.type, 24)}</div>
+                  </div>
                   <div>
                     <h3 className="font-bold text-black dark:text-white">{vehicle.registrationNumber}</h3>
                     <p className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -675,7 +678,7 @@ export default function FleetPage() {
             <div className="flex items-center justify-between p-6 border-b border-zinc-200 dark:border-zinc-800">
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-black dark:bg-white rounded-lg flex items-center justify-center">
-                  <span className="text-3xl">{getTypeIcon(selectedVehicle.type)}</span>
+                  <div className="text-white dark:text-black">{getTypeIcon(selectedVehicle.type, 28)}</div>
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold text-black dark:text-white">{selectedVehicle.registrationNumber}</h2>
