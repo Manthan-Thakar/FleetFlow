@@ -44,10 +44,13 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const result = await signIn({ email, password });
+      // Sign in and get user data directly
+      const { user } = await signIn({ email, password });
+      console.log('Signed in user:', user.role);
       
-      // Redirect to dashboard (authenticated users land here)
-      router.push('/dashboard');
+      // Redirect based on user role from Firestore data
+      const redirectPath = getRedirectPathByRole(user.role);
+      router.push(redirectPath);
     } catch (err: any) {
       setError(err.message || 'Failed to sign in. Please try again.');
     } finally {

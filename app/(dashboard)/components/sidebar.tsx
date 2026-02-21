@@ -22,7 +22,7 @@ import {
   UserCog,
 } from 'lucide-react';
 import { useState } from 'react';
-import { signOut } from '@/lib/services/auth.service';
+import { signOut } from '@/firebase/services/auth.service';
 import { useRouter } from 'next/navigation';
 
 interface User {

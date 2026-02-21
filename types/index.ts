@@ -125,6 +125,8 @@ export interface DriverPerformanceMetrics {
 
 export interface Driver extends CompanyDocument {
   userId: string;
+  email: string;
+  displayName: string;
   licenseNumber: string;
   licenseType: string;
   licenseExpiry: Timestamp | Date;
@@ -144,6 +146,53 @@ export interface Driver extends CompanyDocument {
     backgroundCheck?: string;
   };
   performanceMetrics: DriverPerformanceMetrics;
+}
+
+// Driver Invitation and Form Types
+export interface InviteDriverData {
+  driverName: string;
+  driverEmail: string;
+  companyId: string;
+  companyName: string;
+  managerName?: string;
+  phoneNumber?: string;
+  licenseNumber?: string;
+  licenseType?: string;
+  licenseExpiry?: string;
+  status?: DriverStatus;
+  emergencyContact?: {
+    name: string;
+    phone: string;
+    relationship: string;
+  };
+}
+
+export interface UpdateDriverData {
+  displayName?: string;
+  phoneNumber?: string;
+  licenseNumber?: string;
+  licenseType?: string;
+  licenseExpiry?: Timestamp | Date;
+  emergencyContact?: {
+    name?: string;
+    phone?: string;
+    relationship?: string;
+  };
+  currentVehicleId?: string;
+  status?: DriverStatus;
+  documents?: {
+    license?: string;
+    medicalCertificate?: string;
+    backgroundCheck?: string;
+  };
+}
+
+export interface DriverInviteRequest extends InviteDriverData {}
+
+export interface InviteDriverResponse {
+  success: boolean;
+  message: string;
+  userId?: string;
 }
 
 // ===== Order Types =====

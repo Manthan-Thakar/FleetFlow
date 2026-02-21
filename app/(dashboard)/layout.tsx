@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
+import { getCurrentUser } from '@/firebase/services/auth.service';
 import { Loader2 } from 'lucide-react';
 import Sidebar from './components/sidebar';
 import '@/app/globals.css';
@@ -69,7 +70,7 @@ export default function DashboardLayout({
   if (!user) {
     return null;
   }
-
+  console.log('Authenticated user:', user);
   return (
     <div className="min-h-screen bg-white dark:bg-black">
       {/* Sidebar */}
