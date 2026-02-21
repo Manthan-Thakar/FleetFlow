@@ -1,0 +1,189 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===== Helper Functions =====
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function getUserRole() {
+      return getUserData().role;
+    }
+    
+    function getCompanyId() {
+      return getUserData().companyId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && getUserRole() == 'admin';
+    }
+    
+    function isManager() {
+      return isAuthenticated() && (getUserRole() == 'manager' || isAdmin());
+    }
+    
+    function isDriver() {
+      return isAuthenticated() && getUserRole() == 'driver';
+    }
+    
+    function isCustomer() {
+      return isAuthenticated() && getUserRole() == 'customer';
+    }
+    
+    function belongsToSameCompany(companyId) {
+      return isAuthenticated() && getCompanyId() == companyId;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // ===== Collection Rules =====
+    
+    // Users collection
+    match /users/{userId} {
+      // Anyone authenticated can read user profiles
+      allow read: if isAuthenticated();
+      
+      // Users can update their own profile, admins can update any
+      allow update: if isOwner(userId) || isAdmin();
+      
+      // Only admins can create new users (via admin panel)
+      allow create: if isAdmin();
+      
+      // Only admins can delete users
+      allow delete: if isAdmin();
+    }
+    
+    // Vehicles collection
+    match /vehicles/{vehicleId} {
+      // Read: Users in the same company
+      allow read: if isAuthenticated() && belongsToSameCompany(resource.data.companyId);
+      
+      // Create: Managers and admins only
+      allow create: if isManager() && 
+                      belongsToSameCompany(request.resource.data.companyId);
+      
+      // Update: Managers and admins only
+      allow update: if isManager() && 
+                      belongsToSameCompany(resource.data.companyId);
+      
+      // Delete: Admins only
+      allow delete: if isAdmin() && belongsToSameCompany(resource.data.companyId);
+    }
+    
+    // Drivers collection
+    match /drivers/{driverId} {
+      // Read: Users in same company, or the driver themselves
+      allow read: if isAuthenticated() && (
+        belongsToSameCompany(resource.data.companyId) ||
+        resource.data.userId == request.auth.uid
+      );
+      
+      // Create: Managers and admins only
+      allow create: if isManager() && 
+                      belongsToSameCompany(request.resource.data.companyId);
+      
+      // Update: Managers, admins, or the driver updating their own data
+      allow update: if (isManager() && belongsToSameCompany(resource.data.companyId)) ||
+                      (isDriver() && resource.data.userId == request.auth.uid);
+      
+      // Delete: Admins only
+      allow delete: if isAdmin() && belongsToSameCompany(resource.data.companyId);
+    }
+    
+    // Routes collection
+    match /routes/{routeId} {
+      // Read: Users in same company, or assigned driver
+      allow read: if isAuthenticated() && (
+        belongsToSameCompany(resource.data.companyId) ||
+        resource.data.assignedDriverId == request.auth.uid
+      );
+      
+      // Create: Managers and admins only
+      allow create: if isManager() && 
+                      belongsToSameCompany(request.resource.data.companyId);
+      
+      // Update: Managers, admins, or assigned driver (for status updates)
+      allow update: if (isManager() && belongsToSameCompany(resource.data.companyId)) ||
+                      (isDriver() && resource.data.assignedDriverId == request.auth.uid);
+      
+      // Delete: Admins only
+      allow delete: if isAdmin() && belongsToSameCompany(resource.data.companyId);
+    }
+    
+    // Orders collection
+    match /orders/{orderId} {
+      // Read: Users in same company, customer who created it, or assigned driver
+      allow read: if isAuthenticated() && (
+        belongsToSameCompany(resource.data.companyId) ||
+        resource.data.customerId == request.auth.uid ||
+        resource.data.assignedDriverId == request.auth.uid
+      );
+      
+      // Create: Any authenticated user (customers can create orders)
+      allow create: if isAuthenticated();
+      
+      // Update: Managers, admins, assigned driver (for status/POD), or customer (cancel only)
+      allow update: if (isManager() && belongsToSameCompany(resource.data.companyId)) ||
+                      (isDriver() && resource.data.assignedDriverId == request.auth.uid) ||
+                      (isCustomer() && resource.data.customerId == request.auth.uid && 
+                       request.resource.data.status == 'cancelled');
+      
+      // Delete: Admins only
+      allow delete: if isAdmin() && belongsToSameCompany(resource.data.companyId);
+    }
+    
+    // Maintenance collection
+    match /maintenance/{maintenanceId} {
+      // Read: Users in same company
+      allow read: if isAuthenticated() && belongsToSameCompany(resource.data.companyId);
+      
+      // Create: Managers and admins only
+      allow create: if isManager() && 
+                      belongsToSameCompany(request.resource.data.companyId);
+      
+      // Update: Managers and admins only
+      allow update: if isManager() && belongsToSameCompany(resource.data.companyId);
+      
+      // Delete: Admins only
+      allow delete: if isAdmin() && belongsToSameCompany(resource.data.companyId);
+    }
+    
+    // Notifications collection
+    match /notifications/{notificationId} {
+      // Read: Only the user the notification is for
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      // Create: Any authenticated user or system
+      allow create: if isAuthenticated();
+      
+      // Update: Only the user (to mark as read)
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      // Delete: User or admin
+      allow delete: if isAuthenticated() && 
+                      (resource.data.userId == request.auth.uid || isAdmin());
+    }
+    
+    // Analytics collection (read-only for users, system writes)
+    match /analytics/{docId} {
+      // Read: Managers and admins in same company
+      allow read: if isManager() && belongsToSameCompany(resource.data.companyId);
+      
+      // Write: Admins only or Cloud Functions
+      allow write: if isAdmin();
+    }
+    
+    // Default: Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

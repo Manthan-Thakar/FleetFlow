@@ -1,0 +1,87 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    function isManager() {
+      let userData = firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+      return isAuthenticated() && (userData.role == 'manager' || userData.role == 'admin');
+    }
+    
+    function belongsToCompany(companyId) {
+      let userData = firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+      return isAuthenticated() && userData.companyId == companyId;
+    }
+    
+    // User profile photos
+    match /users/{userId}/profile/{fileName} {
+      // Users can read their own photos, admins can read all
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      
+      // Users can upload/update their own photos
+      allow write: if isAuthenticated() && request.auth.uid == userId &&
+                     request.resource.size < 5 * 1024 * 1024 && // 5MB limit
+                     request.resource.contentType.matches('image/.*');
+      
+      allow delete: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+    }
+    
+    // Company files (vehicles, drivers, orders, maintenance)
+    match /companies/{companyId}/{allPaths=**} {
+      // Read: Users in the same company
+      allow read: if belongsToCompany(companyId);
+      
+      // Write: Managers and admins
+      allow write: if isManager() && belongsToCompany(companyId) &&
+                     request.resource.size < 10 * 1024 * 1024; // 10MB limit
+      
+      // Delete: Admins only
+      allow delete: if isAdmin() && belongsToCompany(companyId);
+    }
+    
+    // Vehicle documents and photos
+    match /companies/{companyId}/vehicles/{vehicleId}/{document} {
+      allow read: if belongsToCompany(companyId);
+      allow write: if isManager() && belongsToCompany(companyId) &&
+                     request.resource.size < 10 * 1024 * 1024;
+    }
+    
+    // Driver documents and photos
+    match /companies/{companyId}/drivers/{driverId}/{document} {
+      allow read: if belongsToCompany(companyId);
+      allow write: if isManager() && belongsToCompany(companyId) &&
+                     request.resource.size < 10 * 1024 * 1024;
+    }
+    
+    // Order proof of delivery (signatures and photos)
+    match /companies/{companyId}/orders/{orderId}/proof-of-delivery/{fileName} {
+      allow read: if belongsToCompany(companyId);
+      
+      // Drivers can upload POD, managers can upload/update
+      allow write: if belongsToCompany(companyId) &&
+                     request.resource.size < 5 * 1024 * 1024 &&
+                     request.resource.contentType.matches('image/.*');
+    }
+    
+    // Maintenance receipts
+    match /companies/{companyId}/maintenance/{maintenanceId}/receipts/{fileName} {
+      allow read: if belongsToCompany(companyId);
+      allow write: if isManager() && belongsToCompany(companyId) &&
+                     request.resource.size < 10 * 1024 * 1024;
+    }
+    
+    // Default: Deny all other access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
