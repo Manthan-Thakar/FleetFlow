@@ -14,10 +14,11 @@ import {
   Eye,
   EyeOff,
 } from 'lucide-react';
-import { signUp } from '@/lib/services/auth.service';
+import { useAuth } from '@/firebase/hooks/useAuth';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { signUp } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 

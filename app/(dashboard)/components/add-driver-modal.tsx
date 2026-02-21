@@ -1,25 +1,42 @@
 'use client';
 
-import { useState } from 'react';
-import { inviteDriver } from '@/lib/services/invite.service';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/firebase/hooks/useAuth';
+import { useCompany } from '@/firebase/hooks/useCompany';
+import { inviteDriver } from '@/firebase/services/invite.service';
+import { InviteDriverData } from '@/types';
 import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 
 interface AddDriverModalProps {
   companyId: string;
-  companyName: string;
-  managerName?: string;
   onSuccess?: () => void;
 }
 
-export default function AddDriverModal({ companyId, companyName, managerName, onSuccess }: AddDriverModalProps) {
+export default function AddDriverModal({ companyId, onSuccess }: AddDriverModalProps) {
+  const { user } = useAuth();
+  const { company } = useCompany(companyId);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<InviteDriverData>({
     driverName: '',
     driverEmail: '',
+    companyId: companyId,
+    companyName: company?.name || '',
+    managerName: user?.displayName || '',
   });
+
+  // Update company name and manager name when they change
+  useEffect(() => {
+    if (company?.name || user?.displayName) {
+      setFormData(prev => ({
+        ...prev,
+        companyName: company?.name || prev.companyName,
+        managerName: user?.displayName || prev.managerName,
+      }));
+    }
+  }, [company?.name, user?.displayName, companyId]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -36,21 +53,26 @@ export default function AddDriverModal({ companyId, companyName, managerName, on
     setSuccess('');
 
     try {
-      const response = await inviteDriver({
-        driverName: formData.driverName,
-        driverEmail: formData.driverEmail,
-        companyName,
-        managerName,
-      });
+      const response = await inviteDriver(formData);
+      
+      if (response.success) {
+        setSuccess(`Invitation sent to ${formData.driverEmail}!`);
+        setFormData({
+          driverName: '',
+          driverEmail: '',
+          companyId: companyId,
+          companyName: company?.name || '',
+          managerName: user?.displayName || '',
+        });
 
-      setSuccess(`Invitation sent to ${formData.driverEmail}! Driver account created with temporary password.`);
-      setFormData({ driverName: '', driverEmail: '' });
-
-      // Close modal after 2 seconds
-      setTimeout(() => {
-        setIsOpen(false);
-        onSuccess?.();
-      }, 2000);
+        // Close modal after 2 seconds
+        setTimeout(() => {
+          setIsOpen(false);
+          onSuccess?.();
+        }, 2000);
+      } else {
+        setError(response.error || 'Failed to send invitation');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send invitation');
     } finally {
@@ -71,7 +93,7 @@ export default function AddDriverModal({ companyId, companyName, managerName, on
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-zinc-900 rounded-lg p-6 w-full max-w-md">
             <h2 className="text-2xl font-bold text-black dark:text-white mb-4">
-              Add Driver
+              Invite Driver
             </h2>
 
             {error && (
@@ -89,9 +111,10 @@ export default function AddDriverModal({ companyId, companyName, managerName, on
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Driver Name */}
               <div>
                 <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                  Driver Name
+                  Driver Name *
                 </label>
                 <input
                   type="text"
@@ -104,9 +127,10 @@ export default function AddDriverModal({ companyId, companyName, managerName, on
                 />
               </div>
 
+              {/* Email */}
               <div>
                 <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                  Email
+                  Email Address *
                 </label>
                 <input
                   type="email"
@@ -117,6 +141,13 @@ export default function AddDriverModal({ companyId, companyName, managerName, on
                   className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-black dark:text-white"
                   placeholder="driver@example.com"
                 />
+              </div>
+
+              {/* Info Text */}
+              <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-700 rounded-lg">
+                <p className="text-sm text-blue-900 dark:text-blue-200">
+                  An invitation email with login credentials will be sent to the driver.
+                </p>
               </div>
 
               <div className="flex gap-3 pt-4">

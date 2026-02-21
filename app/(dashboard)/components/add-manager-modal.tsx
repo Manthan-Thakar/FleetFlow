@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { inviteManager } from '@/lib/services/invite.service';
+import { inviteManager } from '@/firebase/services/invite.service';
 import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 
 interface AddManagerModalProps {
@@ -39,6 +39,7 @@ export default function AddManagerModal({ companyId, companyName, adminName, onS
       const response = await inviteManager({
         managerName: formData.managerName,
         managerEmail: formData.managerEmail,
+        companyId,
         companyName,
         adminName,
       });

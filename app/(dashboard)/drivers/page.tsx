@@ -1,38 +1,32 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, Search, User, Edit, Trash2, Eye, X, Phone, Calendar, Star, Award, MapPin, Filter } from 'lucide-react';
-
-interface Driver {
-  id: string;
-  userId: string;
-  name: string;
-  email: string;
-  phoneNumber: string;
-  licenseNumber: string;
-  licenseType: string;
-  licenseExpiry: string;
-  status: 'available' | 'on-trip' | 'off-duty' | 'inactive';
-  currentVehicle?: string;
-  emergencyContact: {
-    name: string;
-    phone: string;
-    relationship: string;
-  };
-  ratings: {
-    average: number;
-    totalReviews: number;
-    onTimeDelivery: number;
-  };
-  performanceMetrics: {
-    totalTrips: number;
-    totalDistance: number;
-    totalHours: number;
-    incidents: number;
-  };
-}
+import { useState, useEffect } from 'react';
+import {
+  Plus,
+  Search,
+  Filter,
+  Edit,
+  Eye,
+  Trash2,
+  User,
+  X,
+  Phone,
+  MapPin,
+  Calendar,
+  Star,
+  Award,
+  AlertCircle,
+  CheckCircle,
+  Loader2,
+} from 'lucide-react';
+import { useAuth } from '@/firebase/hooks/useAuth';
+import { inviteDriver } from '@/firebase/services/invite.service';
+import { getCompanyDrivers } from '@/firebase/services/drivers.service';
+import { InviteDriverData, Driver } from '@/types';
+import { updateDriver, deleteDriver } from '@/firebase/services/drivers.service';
 
 export default function DriversPage() {
+  const { user } = useAuth();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -41,6 +35,11 @@ export default function DriversPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [loadingDrivers, setLoadingDrivers] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [drivers, setDrivers] = useState<Driver[]>([]);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -55,180 +54,174 @@ export default function DriversPage() {
     emergencyContactRelationship: '',
   });
 
-  // Mock data
-  const [drivers, setDrivers] = useState<Driver[]>([
-    {
-      id: '1',
-      userId: 'u1',
-      name: 'John Smith',
-      email: 'john.smith@example.com',
-      phoneNumber: '+1 234-567-8900',
-      licenseNumber: 'DL12345678',
-      licenseType: 'Commercial',
-      licenseExpiry: '2026-12-31',
-      status: 'available',
-      currentVehicle: 'MH 02 2017',
-      emergencyContact: {
-        name: 'Jane Smith',
-        phone: '+1 234-567-8901',
-        relationship: 'Spouse',
-      },
-      ratings: {
-        average: 4.8,
-        totalReviews: 156,
-        onTimeDelivery: 95,
-      },
-      performanceMetrics: {
-        totalTrips: 342,
-        totalDistance: 45230,
-        totalHours: 1250,
-        incidents: 2,
-      },
-    },
-    {
-      id: '2',
-      userId: 'u2',
-      name: 'Mike Johnson',
-      email: 'mike.j@example.com',
-      phoneNumber: '+1 234-567-8902',
-      licenseNumber: 'DL87654321',
-      licenseType: 'Commercial',
-      licenseExpiry: '2025-08-15',
-      status: 'on-trip',
-      currentVehicle: 'MH 12 5678',
-      emergencyContact: {
-        name: 'Sarah Johnson',
-        phone: '+1 234-567-8903',
-        relationship: 'Sister',
-      },
-      ratings: {
-        average: 4.6,
-        totalReviews: 98,
-        onTimeDelivery: 92,
-      },
-      performanceMetrics: {
-        totalTrips: 215,
-        totalDistance: 32100,
-        totalHours: 890,
-        incidents: 1,
-      },
-    },
-    {
-      id: '3',
-      userId: 'u3',
-      name: 'Robert Davis',
-      email: 'robert.d@example.com',
-      phoneNumber: '+1 234-567-8904',
-      licenseNumber: 'DL11223344',
-      licenseType: 'Commercial',
-      licenseExpiry: '2027-03-20',
-      status: 'off-duty',
-      emergencyContact: {
-        name: 'Mary Davis',
-        phone: '+1 234-567-8905',
-        relationship: 'Mother',
-      },
-      ratings: {
-        average: 4.9,
-        totalReviews: 203,
-        onTimeDelivery: 97,
-      },
-      performanceMetrics: {
-        totalTrips: 428,
-        totalDistance: 56780,
-        totalHours: 1560,
-        incidents: 0,
-      },
-    },
-  ]);
+  // Fetch drivers from Firestore
+  useEffect(() => {
+    const fetchDrivers = async () => {
+      if (!user?.companyId) return;
+      
+      setLoadingDrivers(true);
+      try {
+        const fetchedDrivers = await getCompanyDrivers(user.companyId);
+        setDrivers(fetchedDrivers);
+      } catch (err) {
+        console.error('Error fetching drivers:', err);
+        setError('Failed to load drivers');
+      } finally {
+        setLoadingDrivers(false);
+      }
+    };
+
+    fetchDrivers();
+  }, [user?.companyId]);
+
+  const refreshDrivers = async () => {
+    if (!user?.companyId) return;
+    
+    try {
+      const fetchedDrivers = await getCompanyDrivers(user.companyId);
+      setDrivers(fetchedDrivers);
+    } catch (err) {
+      console.error('Error refreshing drivers:', err);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const newDriver: Driver = {
-      id: String(drivers.length + 1),
-      userId: `u${drivers.length + 1}`,
-      name: formData.name,
-      email: formData.email,
-      phoneNumber: formData.phoneNumber,
-      licenseNumber: formData.licenseNumber,
-      licenseType: formData.licenseType,
-      licenseExpiry: formData.licenseExpiry,
-      status: formData.status,
-      emergencyContact: {
-        name: formData.emergencyContactName,
-        phone: formData.emergencyContactPhone,
-        relationship: formData.emergencyContactRelationship,
-      },
-      ratings: {
-        average: 0,
-        totalReviews: 0,
-        onTimeDelivery: 0,
-      },
-      performanceMetrics: {
-        totalTrips: 0,
-        totalDistance: 0,
-        totalHours: 0,
-        incidents: 0,
-      },
-    };
+    setError('');
+    setSuccess('');
+    setLoading(true);
 
-    setDrivers(prev => [...prev, newDriver]);
-    setShowAddModal(false);
-    resetForm();
-  };
+    try {
+      if (!user?.companyId) {
+        throw new Error('Company information not found');
+      }
 
-  const handleEdit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (selectedDriver) {
-      setDrivers(prev => prev.map(driver => 
-        driver.id === selectedDriver.id
-          ? {
-              ...driver,
-              name: formData.name,
-              email: formData.email,
-              phoneNumber: formData.phoneNumber,
-              licenseNumber: formData.licenseNumber,
-              licenseType: formData.licenseType,
-              licenseExpiry: formData.licenseExpiry,
-              status: formData.status,
-              emergencyContact: {
-                name: formData.emergencyContactName,
-                phone: formData.emergencyContactPhone,
-                relationship: formData.emergencyContactRelationship,
-              },
-            }
-          : driver
-      ));
-      setShowEditModal(false);
-      setSelectedDriver(null);
-      resetForm();
+      const inviteData: InviteDriverData = {
+        driverName: formData.name,
+        driverEmail: formData.email,
+        companyId: user.companyId,
+        companyName: user.companyId, // Update with actual company name when available
+        managerName: user.displayName,
+        phoneNumber: formData.phoneNumber,
+        licenseNumber: formData.licenseNumber,
+        licenseType: formData.licenseType,
+        licenseExpiry: formData.licenseExpiry,
+        status: formData.status,
+        emergencyContact: {
+          name: formData.emergencyContactName,
+          phone: formData.emergencyContactPhone,
+          relationship: formData.emergencyContactRelationship,
+        },
+      };
+
+      const response = await inviteDriver(inviteData);
+      
+      if (response.success) {
+        setSuccess('Driver invited successfully!');
+        setShowAddModal(false);
+        resetForm();
+        // Refresh the drivers list after successful invitation
+        await refreshDrivers();
+      } else {
+        setError(response.error || 'Failed to invite driver');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to invite driver');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDelete = () => {
-    if (selectedDriver) {
-      setDrivers(prev => prev.filter(d => d.id !== selectedDriver.id));
-      setShowDeleteModal(false);
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setLoading(true);
+
+    try {
+      if (!selectedDriver) {
+        throw new Error('No driver selected');
+      }
+
+      // Update driver via service
+      const updatedDriver = await updateDriver(selectedDriver.id, {
+        displayName: formData.name,
+        phoneNumber: formData.phoneNumber,
+        licenseNumber: formData.licenseNumber,
+        licenseType: formData.licenseType,
+        licenseExpiry: formData.licenseExpiry ? new Date(formData.licenseExpiry) : undefined,
+        status: formData.status,
+        emergencyContact: {
+          name: formData.emergencyContactName,
+          phone: formData.emergencyContactPhone,
+          relationship: formData.emergencyContactRelationship,
+        },
+      });
+
+      setSuccess('Driver updated successfully!');
+      setShowEditModal(false);
       setSelectedDriver(null);
+      resetForm();
+      // Refresh the drivers list
+      await refreshDrivers();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update driver');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (selectedDriver) {
+      setLoading(true);
+      try {
+        await deleteDriver(selectedDriver.id);
+        setSuccess('Driver deleted successfully!');
+        setShowDeleteModal(false);
+        setSelectedDriver(null);
+        // Refresh the drivers list
+        await refreshDrivers();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to delete driver');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
   const openEditModal = (driver: Driver) => {
     setSelectedDriver(driver);
+    
+    // Convert date to string format for the input
+    let licenseExpiryString = '';
+    if (driver.licenseExpiry) {
+      try {
+        let dateObj: Date;
+        if (driver.licenseExpiry instanceof Date) {
+          dateObj = driver.licenseExpiry;
+        } else if (driver.licenseExpiry.toDate && typeof driver.licenseExpiry.toDate === 'function') {
+          dateObj = driver.licenseExpiry.toDate();
+        } else {
+          dateObj = new Date(driver.licenseExpiry as any);
+        }
+        licenseExpiryString = dateObj.toISOString().split('T')[0];
+      } catch (error) {
+        licenseExpiryString = '';
+      }
+    }
+
     setFormData({
-      name: driver.name,
+      name: driver.displayName,
       email: driver.email,
       phoneNumber: driver.phoneNumber,
       licenseNumber: driver.licenseNumber,
       licenseType: driver.licenseType,
-      licenseExpiry: driver.licenseExpiry,
+      licenseExpiry: licenseExpiryString,
       status: driver.status,
       emergencyContactName: driver.emergencyContact.name,
       emergencyContactPhone: driver.emergencyContact.phone,
@@ -253,15 +246,11 @@ export default function DriversPage() {
   };
 
   const filteredDrivers = drivers.filter(driver => {
-    const matchesSearch = 
-      driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      driver.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      driver.licenseNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      driver.phoneNumber.includes(searchTerm);
+    const matchesSearch = "";
     
-    const matchesStatus = statusFilter === 'all' || driver.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || driver.status === statusFilter || "";
     
-    return matchesSearch && matchesStatus;
+    return  matchesStatus;
   });
 
   const getStatusColor = (status: Driver['status']) => {
@@ -272,6 +261,23 @@ export default function DriversPage() {
       case 'inactive': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const formatDate = (date: any) => {
+    if (!date) return 'N/A';
+    try {
+      if (date.toDate && typeof date.toDate === 'function') {
+        // Firestore Timestamp
+        return date.toDate().toLocaleDateString();
+      } else if (date instanceof Date) {
+        return date.toLocaleDateString();
+      } else if (typeof date === 'string') {
+        return new Date(date).toLocaleDateString();
+      }
+    } catch (error) {
+      return 'Invalid date';
+    }
+    return 'N/A';
   };
 
   return (
@@ -367,7 +373,18 @@ export default function DriversPage() {
           </div>
         </div>
 
+        {/* Loading State */}
+        {loadingDrivers && (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <Loader2 className="w-12 h-12 animate-spin text-black dark:text-white mx-auto mb-4" />
+              <p className="text-zinc-600 dark:text-zinc-400">Loading drivers...</p>
+            </div>
+          </div>
+        )}
+
         {/* Drivers Grid */}
+        {!loadingDrivers && (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredDrivers.map((driver) => (
             <div
@@ -398,12 +415,12 @@ export default function DriversPage() {
                 </div>
                 <div className="flex items-center text-sm">
                   <Calendar size={16} className="text-zinc-400 mr-2" />
-                  <span className="text-black dark:text-white">License Expiry: {new Date(driver.licenseExpiry).toLocaleDateString()}</span>
+                  <span className="text-black dark:text-white">License Expiry: {formatDate(driver.licenseExpiry)}</span>
                 </div>
-                {driver.currentVehicle && (
+                {driver.currentVehicleId && (
                   <div className="flex items-center text-sm">
                     <MapPin size={16} className="text-zinc-400 mr-2" />
-                    <span className="text-black dark:text-white">Vehicle: {driver.currentVehicle}</span>
+                    <span className="text-black dark:text-white">Vehicle: {driver.currentVehicleId}</span>
                   </div>
                 )}
                 <div className="flex items-center text-sm">
@@ -464,8 +481,9 @@ export default function DriversPage() {
             </div>
           ))}
         </div>
+        )}
 
-        {filteredDrivers.length === 0 && (
+        {filteredDrivers.length === 0 && !loadingDrivers && (
           <div className="text-center py-12">
             <User size={48} className="mx-auto text-zinc-400 mb-4" />
             <p className="text-zinc-600 dark:text-zinc-400">No drivers found</p>
@@ -489,7 +507,7 @@ export default function DriversPage() {
             {/* Modal Header */}
             <div className="sticky top-0 bg-white dark:bg-zinc-900 rounded-t-xl flex items-center justify-between p-6 border-b border-zinc-200 dark:border-zinc-800 z-10">
               <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-black dark:bg-white rounded-lg flex items-center justify-center flex-shrink-0">
+                <div className="w-12 h-12 bg-black dark:bg-white rounded-lg flex items-center justify-center shrink-0">
                   <User className="text-white dark:text-black" size={24} />
                 </div>
                 <div>
@@ -508,7 +526,7 @@ export default function DriversPage() {
                   resetForm();
                 }}
                 type="button"
-                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors flex-shrink-0 ml-4"
+                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors shrink-0 ml-4"
               >
                 <X size={24} />
               </button>
@@ -516,6 +534,20 @@ export default function DriversPage() {
 
             {/* Modal Body */}
             <form onSubmit={showEditModal ? handleEdit : handleSubmit} className="p-6 max-h-[calc(100vh-12rem)] overflow-y-auto">
+              {error && (
+                <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start space-x-3">
+                  <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+                </div>
+              )}
+
+              {success && (
+                <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-start space-x-3">
+                  <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
+                  <p className="text-sm text-green-700 dark:text-green-300">{success}</p>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Personal Information */}
                 <div className="md:col-span-2">
@@ -694,15 +726,18 @@ export default function DriversPage() {
                     setShowEditModal(false);
                     resetForm();
                   }}
-                  className="flex-1 px-6 py-3 border-2 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors font-semibold"
+                  disabled={loading}
+                  className="flex-1 px-6 py-3 border-2 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors font-semibold shadow-lg"
+                  disabled={loading}
+                  className="flex-1 px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                 >
-                  {showEditModal ? 'Update Driver' : 'Add Driver'}
+                  {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>{showEditModal ? 'Update Driver' : 'Add Driver'}</span>
                 </button>
               </div>
             </form>
@@ -777,7 +812,7 @@ export default function DriversPage() {
                   <div>
                     <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-1">Expiry Date</p>
                     <p className="text-base font-semibold text-black dark:text-white">
-                      {new Date(selectedDriver.licenseExpiry).toLocaleDateString()}
+                      {formatDate(selectedDriver.licenseExpiry)}
                     </p>
                   </div>
                 </div>
@@ -849,10 +884,10 @@ export default function DriversPage() {
                 </div>
               </div>
 
-              {selectedDriver.currentVehicle && (
+              {selectedDriver.currentVehicleId && (
                 <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                   <p className="text-sm text-blue-800 dark:text-blue-400">
-                    <strong>Currently assigned to:</strong> {selectedDriver.currentVehicle}
+                    <strong>Currently assigned to:</strong> {selectedDriver.currentVehicleId}
                   </p>
                 </div>
               )}
@@ -890,7 +925,7 @@ export default function DriversPage() {
 
               <div className="bg-zinc-100 dark:bg-zinc-800 rounded-lg p-4 mt-4">
                 <p className="text-sm font-semibold text-black dark:text-white mb-1">
-                  {selectedDriver.name}
+                  {selectedDriver.displayName}
                 </p>
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
                   {selectedDriver.email}

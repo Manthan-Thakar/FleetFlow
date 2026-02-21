@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getCurrentUser } from '@/lib/services/auth.service';
+import { getCurrentUser } from '@/firebase/services/auth.service';
 import { Loader2 } from 'lucide-react';
 import Sidebar from './components/sidebar';
 import '@/app/globals.css';
@@ -51,7 +51,7 @@ export default function DashboardLayout({
   if (!user) {
     return null;
   }
-
+  console.log('Authenticated user:', user);
   return (
     <div className="min-h-screen bg-white dark:bg-black">
       {/* Sidebar */}

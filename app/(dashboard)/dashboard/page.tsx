@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getCurrentUser } from '@/lib/services/auth.service';
+import { getCurrentUser } from '@/firebase/services/auth.service';
 import { Loader2 } from 'lucide-react';
 import AdminDashboard from './components/admin-dashboard';
 import ManagerDashboard from './components/manager-dashboard';
