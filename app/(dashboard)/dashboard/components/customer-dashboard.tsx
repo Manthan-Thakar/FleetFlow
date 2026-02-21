@@ -15,7 +15,7 @@ export default function CustomerDashboard({ user }: { user: User }) {
     <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
       {/* Header */}
       <header className="bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
-        <div className="px-6 py-4">
+        <div className="px-6 py-4 pl-16 lg:pl-6">
           <h1 className="text-3xl font-bold">My Orders</h1>
           <p className="text-zinc-600 dark:text-zinc-400 mt-1">Welcome back, {user.displayName}</p>
         </div>

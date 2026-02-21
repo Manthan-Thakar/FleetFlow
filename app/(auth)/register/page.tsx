@@ -54,8 +54,6 @@ export default function RegisterPage() {
         displayName,
         role: 'admin', // Account owner is admin by default
         companyName: companyName || displayName, // Use display name as fallback
-        phoneNumber : null,
-        photoURL: null
       });
 
       // Redirect to dashboard
@@ -68,37 +66,39 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center px-8 py-12">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="flex items-center justify-center mb-8">
-          <Link href="/" className="flex items-center space-x-2">
-            <Image
-              src="/images/logo.png"
-              alt="FleetFlow Logo"
-              width={40}
-              height={40}
-              className="rounded-full"
-            />
-            <span className="text-2xl font-bold text-black dark:text-white">FleetFlow</span>
-          </Link>
-        </div>
-
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-black dark:text-white mb-2">Create your account</h1>
-          <p className="text-zinc-600 dark:text-zinc-400">
-            Start managing your fleet in minutes
-          </p>
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start space-x-3">
-            <AlertCircle className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" size={20} />
-            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+    <div className="min-h-screen bg-white dark:bg-black flex">
+      {/* Left Side - Registration Form */}
+      <div className="flex-1 flex items-center justify-center px-8 py-12">
+        <div className="w-full max-w-md">
+          {/* Logo */}
+          <div className="flex items-center justify-center mb-8">
+            <Link href="/" className="flex items-center space-x-2">
+              <Image
+                src="/images/logo.png"
+                alt="FleetFlow Logo"
+                width={40}
+                height={40}
+                className="rounded-full"
+              />
+              <span className="text-2xl font-bold text-black dark:text-white">FleetFlow</span>
+            </Link>
           </div>
-        )}
+
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-black dark:text-white mb-2">Create your account</h1>
+            <p className="text-zinc-600 dark:text-zinc-400">
+              Start managing your fleet in minutes
+            </p>
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start space-x-3">
+              <AlertCircle className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" size={20} />
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            </div>
+          )}
 
         {/* Registration Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -230,13 +230,37 @@ export default function RegisterPage() {
           </button>
         </form>
 
-        {/* Sign In Link */}
-        <p className="mt-6 text-center text-sm text-zinc-600 dark:text-zinc-400">
-          Already have an account?{' '}
-          <Link href="/login" className="font-medium text-black dark:text-white hover:underline">
-            Sign in
-          </Link>
-        </p>
+          {/* Sign In Link */}
+          <p className="mt-6 text-center text-sm text-zinc-600 dark:text-zinc-400">
+            Already have an account?{' '}
+            <Link href="/login" className="font-medium text-black dark:text-white hover:underline">
+              Sign in
+            </Link>
+          </p>
+        </div>
+      </div>
+
+      {/* Right Side - Image/Branding */}
+      <div className="hidden lg:flex flex-1 bg-zinc-100 dark:bg-zinc-900 items-center justify-center p-12">
+        <div className="max-w-md text-center">
+          <div className="mb-6">
+            <div className="w-24 h-24 bg-black dark:bg-white rounded-full mx-auto mb-6 flex items-center justify-center">
+              <Image
+                src="/images/logo.png"
+                alt="FleetFlow"
+                width={64}
+                height={64}
+                className="rounded-full"
+              />
+            </div>
+          </div>
+          <h2 className="text-3xl font-bold text-black dark:text-white mb-4">
+            Manage your fleet with ease
+          </h2>
+          <p className="text-zinc-600 dark:text-zinc-400 text-lg">
+            Track vehicles, optimize routes, and streamline operations all in one place.
+          </p>
+        </div>
       </div>
     </div>
   );

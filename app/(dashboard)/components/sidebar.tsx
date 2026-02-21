@@ -12,15 +12,14 @@ import {
   Wrench,
   Settings,
   LogOut,
-  ChevronDown,
-  Menu,
-  X,
   TrendingUp,
   Calendar,
   Search,
   Clock,
   Plus,
   UserCog,
+  X,
+  Menu,
 } from 'lucide-react';
 import { useState } from 'react';
 import { signOut } from '@/lib/services/auth.service';
@@ -43,8 +42,8 @@ interface NavItem {
 export default function Sidebar({ user }: { user: User }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [isOpen, setIsOpen] = useState(true);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const navigationItems: Record<string, NavItem[]> = {
     admin: [
@@ -98,32 +97,40 @@ export default function Sidebar({ user }: { user: User }) {
       router.push('/login');
     } catch (error) {
       console.error('Logout failed:', error);
+    } finally {
+      setShowLogoutModal(false);
     }
   };
 
   return (
     <>
-      {/* Mobile Toggle Button */}
+      {/* Mobile Menu Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-black dark:bg-white text-white dark:text-black rounded-lg"
+        onClick={() => setIsMobileOpen(!isMobileOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-black dark:bg-white text-white dark:text-black rounded-lg shadow-lg"
       >
-        {isOpen ? <X size={24} /> : <Menu size={24} />}
+        {isMobileOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
+      {/* Mobile Overlay */}
+      {isMobileOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 z-30"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside
-        className={`${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0 fixed lg:static top-0 left-0 h-screen w-64 bg-zinc-50 dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 transition-transform duration-300 ease-in-out z-40 flex flex-col`}
-      >
+      <aside className={`fixed top-0 left-0 h-screen w-64 bg-zinc-50 dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 z-40 flex flex-col transition-transform duration-300 lg:translate-x-0 ${
+        isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
         {/* Logo Section */}
-        <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
+        <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex-shrink-0">
           <Link href="/dashboard" className="flex items-center space-x-2">
             <div className="w-10 h-10 bg-black dark:bg-white rounded-lg flex items-center justify-center">
               <span className="text-white dark:text-black font-bold">FF</span>
             </div>
-            <div className="hidden sm:block">
+            <div>
               <p className="font-bold text-black dark:text-white">FleetFlow</p>
               <p className="text-xs text-zinc-600 dark:text-zinc-400 capitalize">{user.role}</p>
             </div>
@@ -136,7 +143,7 @@ export default function Sidebar({ user }: { user: User }) {
             <Link
               key={item.href}
               href={item.href}
-              onClick={() => setIsOpen(false)}
+              onClick={() => setIsMobileOpen(false)}
               className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
                 isActive(item.href)
                   ? 'bg-black dark:bg-white text-white dark:text-black'
@@ -150,7 +157,7 @@ export default function Sidebar({ user }: { user: User }) {
         </nav>
 
         {/* User Profile Section */}
-        <div className="border-t border-zinc-200 dark:border-zinc-800 p-4 space-y-3">
+        <div className="border-t border-zinc-200 dark:border-zinc-800 p-4 space-y-3 flex-shrink-0">
           {/* User Info */}
           <div className="px-4 py-3 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
             <p className="text-sm font-medium text-black dark:text-white truncate">
@@ -159,42 +166,9 @@ export default function Sidebar({ user }: { user: User }) {
             <p className="text-xs text-zinc-600 dark:text-zinc-400 truncate">{user.email}</p>
           </div>
 
-          {/* Dropdown Menu */}
-          <div className="relative">
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-            >
-              <span>Account</span>
-              <ChevronDown size={16} className={`transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-            </button>
-
-            {isDropdownOpen && (
-              <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg">
-                <Link
-                  href="/settings"
-                  className="block px-4 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 first:rounded-t-lg"
-                  onClick={() => setIsDropdownOpen(false)}
-                >
-                  Settings
-                </Link>
-                <button
-                  onClick={() => {
-                    setIsDropdownOpen(false);
-                    handleLogout();
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 last:rounded-b-lg flex items-center space-x-2"
-                >
-                  <LogOut size={16} />
-                  <span>Logout</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Logout Button (Mobile) */}
+          {/* Logout Button */}
           <button
-            onClick={handleLogout}
+            onClick={() => setShowLogoutModal(true)}
             className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium"
           >
             <LogOut size={18} />
@@ -203,12 +177,50 @@ export default function Sidebar({ user }: { user: User }) {
         </div>
       </aside>
 
-      {/* Mobile Overlay */}
-      {isOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-30"
-          onClick={() => setIsOpen(false)}
-        />
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-xl max-w-md w-full p-6 relative">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowLogoutModal(false)}
+              className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+            >
+              <X size={20} />
+            </button>
+
+            {/* Modal Content */}
+            <div className="pr-8">
+              <div className="flex items-center justify-center w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-full mb-4">
+                <LogOut className="text-red-600 dark:text-red-400" size={24} />
+              </div>
+              
+              <h2 className="text-xl font-semibold text-black dark:text-white mb-2">
+                Confirm Logout
+              </h2>
+              
+              <p className="text-zinc-600 dark:text-zinc-400 mb-6">
+                Are you sure you want to logout? You will need to sign in again to access your account.
+              </p>
+
+              {/* Action Buttons */}
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowLogoutModal(false)}
+                  className="flex-1 px-4 py-2 border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
