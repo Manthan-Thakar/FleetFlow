@@ -53,12 +53,12 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-white dark:bg-black">
+    <div className="min-h-screen bg-white dark:bg-black">
       {/* Sidebar */}
       <Sidebar user={user} />
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-0">
+      <main className="lg:ml-64 min-h-screen">
         {children}
       </main>
     </div>
