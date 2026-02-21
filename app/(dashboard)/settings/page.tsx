@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Building2,
   User,
@@ -17,6 +17,11 @@ import {
   CheckCircle,
   ChevronRight,
 } from 'lucide-react';
+import { useAuth } from '@/firebase/hooks/useAuth';
+import { useCompany } from '@/firebase/hooks/useCompany';
+import { useUser } from '@/firebase/hooks/useUser';
+import type { Company } from '@/firebase/services/CompanyService';
+import type { UserProfile } from '@/firebase/services/UserService';
 
 // ─── Tab definitions ──────────────────────────────────────────────────────────
 
@@ -73,27 +78,70 @@ function TextArea({ label, value, onChange, placeholder }: {
 
 // ─── Company Tab ──────────────────────────────────────────────────────────────
 
-function CompanyTab() {
+function CompanyTab({
+  company,
+  onSave,
+  loading,
+}: {
+  company: Company | null;
+  onSave: (updates: Partial<Company> & Record<string, any>) => Promise<void>;
+  loading: boolean;
+}) {
   const [form, setForm] = useState({
-    name: 'FleetFlow Logistics Pvt. Ltd.',
-    email: 'admin@fleetflow.in',
-    phone: '+91 98765 43210',
-    website: 'www.fleetflow.in',
-    industry: 'Logistics & Transportation',
-    gst: '27AABCU9603R1ZX',
-    pan: 'AABCU9603R',
-    address: '14, Industrial Area, Phase II',
-    city: 'Mumbai',
-    state: 'Maharashtra',
-    pincode: '400093',
-    country: 'India',
-    description: 'Full-service fleet management and logistics company operating across India.',
+    name: '',
+    email: '',
+    phone: '',
+    website: '',
+    industry: '',
+    gst: '',
+    pan: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
+    country: '',
+    description: '',
   });
   const [saved, setSaved] = useState(false);
 
+  useEffect(() => {
+    if (!company) return;
+    setForm({
+      name: company.name || '',
+      email: (company as any).email || '',
+      phone: company.phoneNumber || '',
+      website: (company as any).website || '',
+      industry: (company as any).industry || '',
+      gst: (company as any).gst || '',
+      pan: (company as any).pan || '',
+      address: company.address || '',
+      city: company.city || '',
+      state: company.state || '',
+      pincode: company.zipCode || '',
+      country: company.country || '',
+      description: (company as any).description || '',
+    });
+  }, [company]);
+
   const set = (key: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [key]: v }));
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!company) return;
+    await onSave({
+      name: form.name,
+      email: form.email,
+      phoneNumber: form.phone,
+      address: form.address,
+      city: form.city,
+      state: form.state,
+      zipCode: form.pincode,
+      country: form.country,
+      website: form.website,
+      industry: form.industry,
+      gst: form.gst,
+      pan: form.pan,
+      description: form.description,
+    });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -157,7 +205,11 @@ function CompanyTab() {
       </div>
 
       <div className="flex justify-end">
-        <button onClick={handleSave} className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${saved ? 'bg-green-500 text-white' : 'bg-black dark:bg-white text-white dark:text-black hover:opacity-80'}`}>
+        <button
+          onClick={handleSave}
+          disabled={loading}
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${saved ? 'bg-green-500 text-white' : 'bg-black dark:bg-white text-white dark:text-black hover:opacity-80'} disabled:opacity-60 disabled:cursor-not-allowed`}
+        >
           {saved ? <><CheckCircle size={15} /> Saved!</> : <><Save size={15} /> Save Changes</>}
         </button>
       </div>
@@ -167,18 +219,59 @@ function CompanyTab() {
 
 // ─── Profile Tab ──────────────────────────────────────────────────────────────
 
-function ProfileTab() {
+function ProfileTab({
+  profile,
+  onSave,
+  loading,
+}: {
+  profile: UserProfile | null;
+  onSave: (updates: Partial<UserProfile> & Record<string, any>) => Promise<void>;
+  loading: boolean;
+}) {
   const [form, setForm] = useState({
-    firstName: 'Arjun', lastName: 'Sharma',
-    email: 'arjun.sharma@fleetflow.in', phone: '+91 99887 65432',
-    role: 'Admin', department: 'Operations',
-    bio: 'Fleet operations manager with 8+ years of experience.',
-    timezone: 'Asia/Kolkata', language: 'English',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    role: '',
+    department: '',
+    bio: '',
+    timezone: 'Asia/Kolkata',
+    language: 'English',
   });
   const [saved, setSaved] = useState(false);
   const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
 
-  const handleSave = () => { setSaved(true); setTimeout(() => setSaved(false), 2500); };
+  useEffect(() => {
+    if (!profile) return;
+    const nameParts = (profile.displayName || '').split(' ');
+    setForm({
+      firstName: nameParts[0] || '',
+      lastName: nameParts.slice(1).join(' ') || '',
+      email: profile.email || '',
+      phone: profile.phoneNumber || '',
+      role: profile.role || '',
+      department: (profile as any).department || '',
+      bio: (profile as any).bio || '',
+      timezone: (profile as any).timezone || 'Asia/Kolkata',
+      language: (profile as any).language || 'English',
+    });
+  }, [profile]);
+
+  const handleSave = async () => {
+    if (!profile) return;
+    const displayName = `${form.firstName} ${form.lastName}`.trim();
+    await onSave({
+      displayName,
+      phoneNumber: form.phone,
+      department: form.department,
+      bio: form.bio,
+      timezone: form.timezone,
+      language: form.language,
+    });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
 
   return (
     <div className="space-y-8">
@@ -204,7 +297,7 @@ function ProfileTab() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <Field label="First Name" value={form.firstName} onChange={set('firstName')} />
           <Field label="Last Name" value={form.lastName} onChange={set('lastName')} />
-          <Field label="Email Address" value={form.email} onChange={set('email')} type="email" icon={<Mail size={15} />} />
+          <Field label="Email Address" value={form.email} type="email" icon={<Mail size={15} />} readOnly />
           <Field label="Phone" value={form.phone} onChange={set('phone')} icon={<Phone size={15} />} />
           <Field label="Role" value={form.role} readOnly />
           <Field label="Department" value={form.department} onChange={set('department')} />
@@ -236,7 +329,11 @@ function ProfileTab() {
       </div>
 
       <div className="flex justify-end">
-        <button onClick={handleSave} className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${saved ? 'bg-green-500 text-white' : 'bg-black dark:bg-white text-white dark:text-black hover:opacity-80'}`}>
+        <button
+          onClick={handleSave}
+          disabled={loading}
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${saved ? 'bg-green-500 text-white' : 'bg-black dark:bg-white text-white dark:text-black hover:opacity-80'} disabled:opacity-60 disabled:cursor-not-allowed`}
+        >
           {saved ? <><CheckCircle size={15} /> Saved!</> : <><Save size={15} /> Save Changes</>}
         </button>
       </div>
@@ -342,11 +439,16 @@ function SecurityTab() {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
+  const { user, loading: authLoading } = useAuth();
+  const { company, loading: companyLoading, updateCompany } = useCompany(user?.companyId);
+  const { user: profile, loading: profileLoading, updateUser } = useUser(user?.id);
   const [activeTab, setActiveTab] = useState<Tab>('company');
 
+  const isLoading = authLoading || companyLoading || profileLoading;
+
   const content: Record<Tab, React.ReactNode> = {
-    company: <CompanyTab />,
-    profile: <ProfileTab />,
+    company: <CompanyTab company={company} onSave={updateCompany} loading={isLoading} />,
+    profile: <ProfileTab profile={profile} onSave={updateUser} loading={isLoading} />,
     security: <SecurityTab />,
   };
 
