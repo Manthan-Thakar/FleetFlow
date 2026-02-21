@@ -3,7 +3,9 @@
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getCurrentUser } from '@/lib/services/auth.service';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase/config';
 import { Loader2 } from 'lucide-react';
 import Sidebar from './components/sidebar';
 import '@/app/globals.css';
@@ -18,23 +20,39 @@ export default function DashboardLayout({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUser = async () => {
+    // onAuthStateChanged waits for Firebase to restore the session from cache
+    // before firing — this prevents the login redirect on reload.
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (!firebaseUser) {
+        setLoading(false);
+        router.push('/login');
+        return;
+      }
       try {
-        const currentUser = await getCurrentUser();
-        if (!currentUser) {
+        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+        if (!userDoc.exists()) {
+          setLoading(false);
           router.push('/login');
           return;
         }
-        setUser(currentUser);
+        const userData = userDoc.data();
+        setUser({
+          id: firebaseUser.uid,
+          email: userData.email || firebaseUser.email,
+          displayName: userData.displayName || firebaseUser.displayName || '',
+          role: userData.role || 'customer',
+          companyId: userData.companyId || null,
+          photoURL: userData.photoURL || firebaseUser.photoURL || null,
+        });
       } catch (error) {
-        console.error('Failed to fetch user:', error);
+        console.error('Failed to fetch user data:', error);
         router.push('/login');
       } finally {
         setLoading(false);
       }
-    };
+    });
 
-    fetchUser();
+    return () => unsubscribe();
   }, [router]);
 
   if (loading) {
