@@ -276,19 +276,22 @@ export default function ManagersPage() {
   );
 
   return (
-    <div className="p-6 lg:p-8 min-h-screen bg-white dark:bg-black">
+    <div className="min-h-screen bg-white dark:bg-black">
       {/* Header */}
-      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-black dark:text-white">Managers</h1>
-          <p className="text-zinc-600 dark:text-zinc-400 mt-1">Manage fleet operations managers</p>
+      <header className="bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
+        <div className="px-6 py-4 pl-16 lg:pl-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-black dark:text-white">Managers</h1>
+            <p className="text-zinc-600 dark:text-zinc-400 mt-1">Manage fleet operations managers</p>
+          </div>
+          <button onClick={openAdd}
+            className="flex items-center gap-2 bg-black dark:bg-white text-white dark:text-black px-5 py-2.5 rounded-lg text-sm font-medium hover:opacity-80 transition-opacity">
+            <Plus size={16} /> Add Manager
+          </button>
         </div>
-        <button onClick={openAdd}
-          className="flex items-center gap-2 bg-black dark:bg-white text-white dark:text-black px-5 py-2.5 rounded-lg text-sm font-medium hover:opacity-80 transition-opacity">
-          <Plus size={16} /> Add Manager
-        </button>
-      </div>
+      </header>
 
+      <main className="p-6 lg:p-8">
       {error && (
         <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
           {error}
@@ -596,6 +599,7 @@ export default function ManagersPage() {
           </div>
         </>
       )}
+      </main>
     </div>
   );
 }

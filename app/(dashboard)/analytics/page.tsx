@@ -157,14 +157,15 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="p-6 lg:p-8 min-h-screen bg-white dark:bg-black">
+    <div className="min-h-screen bg-white dark:bg-black">
       {/* Header */}
-      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-black dark:text-white">Analytics</h1>
-          <p className="text-zinc-600 dark:text-zinc-400 mt-1">Operational analytics & financial reports</p>
-        </div>
-        <div className="flex items-center gap-3">
+      <header className="bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
+        <div className="px-6 py-4 pl-16 lg:pl-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-black dark:text-white">Analytics</h1>
+            <p className="text-zinc-600 dark:text-zinc-400 mt-1">Operational analytics & financial reports</p>
+          </div>
+          <div className="flex items-center gap-3">
           {/* Month filter */}
           <div className="relative">
             <select
@@ -182,9 +183,11 @@ export default function AnalyticsPage() {
           <button className="flex items-center gap-2 bg-black dark:bg-white text-white dark:text-black text-sm px-4 py-2 rounded-lg hover:opacity-80 transition-opacity">
             <FileText size={14} /> Excel Report
           </button>
+          </div>
         </div>
-      </div>
+      </header>
 
+      <main className="p-6 lg:p-8">
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
@@ -327,6 +330,7 @@ export default function AnalyticsPage() {
           ))}
         </div>
       </div>
+      </main>
     </div>
   );
 }

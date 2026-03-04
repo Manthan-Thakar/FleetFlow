@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Truck, Zap, MapPin, BarChart3, ArrowRight, CheckCircle, Clock, Shield, Route } from 'lucide-react';
+import { Truck, Zap, MapPin, BarChart3, ArrowRight, CheckCircle, Clock, Shield, Route, Star, Users, Globe, Twitter, Linkedin, Github, Mail, Phone } from 'lucide-react';
 import DotGrid from '@/components/shared/DotGrid';
 
 export default function Home() {
@@ -183,25 +183,236 @@ export default function Home() {
         </div>
       </section>
 
+      {/* How It Works Section */}
+      <section className="py-24 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-black">
+        <div className="max-w-7xl mx-auto px-8">
+          <div className="text-center max-w-3xl mx-auto mb-20">
+            <span className="inline-block text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-500 mb-4">Step by step</span>
+            <h2 className="text-4xl font-bold text-black dark:text-white mb-4">Get up and running in minutes</h2>
+            <p className="text-zinc-600 dark:text-zinc-400 text-lg">No complex setup. No lengthy onboarding. Just add your fleet and go.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-0 relative">
+            {/* connecting line */}
+            <div className="hidden md:block absolute top-10 left-1/6 right-1/6 h-px bg-zinc-200 dark:bg-zinc-800 z-0" style={{ left: '16.6%', right: '16.6%' }}></div>
+            {[
+              { step: '01', title: 'Create your account', desc: 'Sign up in seconds and invite your team. No credit card needed for the 14-day trial.' },
+              { step: '02', title: 'Add your vehicles', desc: 'Import your fleet via CSV or add vehicles manually. Connect GPS devices in one click.' },
+              { step: '03', title: 'Start managing', desc: 'Track in real-time, assign routes, and get AI-powered insights from day one.' },
+            ].map((item, idx) => (
+              <div key={idx} className="relative z-10 flex flex-col items-center text-center px-8">
+                <div className="w-20 h-20 bg-zinc-100 dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800 rounded-full flex items-center justify-center mb-6">
+                  <span className="text-2xl font-bold text-black dark:text-white">{item.step}</span>
+                </div>
+                <h3 className="text-xl font-bold text-black dark:text-white mb-3">{item.title}</h3>
+                <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Social Proof / Testimonials */}
+      <section className="py-24 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950">
+        <div className="max-w-7xl mx-auto px-8">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <span className="inline-block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">Testimonials</span>
+            <h2 className="text-4xl font-bold text-black dark:text-white mb-4">Trusted by fleet managers worldwide</h2>
+            <p className="text-zinc-600 dark:text-zinc-400 text-lg">See what our customers say about FleetFlow.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                quote: "FleetFlow cut our route planning time by 60%. The real-time tracking alone paid for the subscription in the first week.",
+                name: 'Sarah Chen',
+                role: 'Operations Director, FastShip Co.',
+                rating: 5,
+              },
+              {
+                quote: "We manage 200+ vehicles across 3 cities. FleetFlow gives us full visibility and keeps our drivers accountable effortlessly.",
+                name: 'Marcus Rodriguez',
+                role: 'Fleet Manager, Urban Logistics',
+                rating: 5,
+              },
+              {
+                quote: "The maintenance scheduling alone has saved us thousands in unexpected breakdowns. Setup took less than a day.",
+                name: 'Priya Nair',
+                role: 'Head of Transport, Retail Giant',
+                rating: 5,
+              },
+            ].map((t, idx) => (
+              <div key={idx} className="bg-white dark:bg-black p-8 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col">
+                <div className="flex mb-4">
+                  {Array.from({ length: t.rating }).map((_, i) => (
+                    <Star key={i} size={16} className="fill-black dark:fill-white text-black dark:text-white mr-0.5" />
+                  ))}
+                </div>
+                <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed flex-1 mb-6">"{t.quote}"</p>
+                <div>
+                  <div className="font-bold text-black dark:text-white text-sm">{t.name}</div>
+                  <div className="text-zinc-500 dark:text-zinc-500 text-xs mt-0.5">{t.role}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section className="py-24 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-black">
+        <div className="max-w-7xl mx-auto px-8">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <span className="inline-block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">Pricing</span>
+            <h2 className="text-4xl font-bold text-black dark:text-white mb-4">Simple, transparent pricing</h2>
+            <p className="text-zinc-600 dark:text-zinc-400 text-lg">Start free. Scale as your fleet grows. No hidden fees.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {[
+              {
+                plan: 'Starter',
+                price: '$0',
+                period: '14-day trial',
+                desc: 'Perfect for small teams getting started.',
+                features: ['Up to 10 vehicles', 'Real-time tracking', 'Route optimization', 'Email support'],
+                cta: 'Start Free Trial',
+                highlight: false,
+              },
+              {
+                plan: 'Professional',
+                price: '$49',
+                period: 'per month',
+                desc: 'For growing fleets that need more power.',
+                features: ['Up to 100 vehicles', 'Everything in Starter', 'AI route planning', 'Driver performance', 'Priority support', 'Advanced analytics'],
+                cta: 'Get Started',
+                highlight: true,
+              },
+              {
+                plan: 'Enterprise',
+                price: 'Custom',
+                period: 'contact us',
+                desc: 'For large fleets with complex needs.',
+                features: ['Unlimited vehicles', 'Everything in Pro', 'Custom integrations', 'Dedicated account manager', 'SLA guarantee', 'On-premise option'],
+                cta: 'Contact Sales',
+                highlight: false,
+              },
+            ].map((p, idx) => (
+              <div key={idx} className={`relative rounded-2xl border p-8 flex flex-col ${p.highlight ? 'bg-black dark:bg-white border-black dark:border-white shadow-2xl scale-105' : 'bg-white dark:bg-black border-zinc-200 dark:border-zinc-800 shadow-sm'}`}>
+                {p.highlight && (
+                  <span className="absolute -top-4 left-1/2 -translate-x-1/2 bg-black dark:bg-white text-white dark:text-black text-xs font-bold uppercase tracking-widest px-4 py-1.5 rounded-full border border-zinc-700 dark:border-zinc-300">Most Popular</span>
+                )}
+                <div className={`text-sm font-bold uppercase tracking-widest mb-2 ${p.highlight ? 'text-zinc-400 dark:text-zinc-600' : 'text-zinc-500'}`}>{p.plan}</div>
+                <div className={`text-4xl font-bold mb-1 ${p.highlight ? 'text-white dark:text-black' : 'text-black dark:text-white'}`}>{p.price}</div>
+                <div className={`text-sm mb-4 ${p.highlight ? 'text-zinc-400 dark:text-zinc-600' : 'text-zinc-500'}`}>{p.period}</div>
+                <p className={`text-sm mb-8 leading-relaxed ${p.highlight ? 'text-zinc-300 dark:text-zinc-700' : 'text-zinc-600 dark:text-zinc-400'}`}>{p.desc}</p>
+                <ul className="space-y-3 flex-1 mb-8">
+                  {p.features.map((f, i) => (
+                    <li key={i} className={`flex items-center text-sm ${p.highlight ? 'text-zinc-200 dark:text-zinc-800' : 'text-zinc-700 dark:text-zinc-300'}`}>
+                      <CheckCircle size={15} className={`mr-2 flex-shrink-0 ${p.highlight ? 'text-white dark:text-black' : 'text-black dark:text-white'}`} />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={() => router.push('/register')}
+                  className={`w-full py-3 rounded-xl font-bold transition-all ${p.highlight ? 'bg-white dark:bg-black text-black dark:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900' : 'bg-zinc-100 dark:bg-zinc-900 text-black dark:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800'}`}
+                >
+                  {p.cta}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Integrations / Trusted By */}
+      <section className="py-20 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950">
+        <div className="max-w-7xl mx-auto px-8">
+          <p className="text-center text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-600 mb-10">Integrates seamlessly with your existing tools</p>
+          <div className="flex flex-wrap items-center justify-center gap-10 opacity-60 dark:opacity-40">
+            {['Google Maps', 'Slack', 'Salesforce', 'QuickBooks', 'Stripe', 'Zapier'].map((brand) => (
+              <span key={brand} className="text-lg font-bold text-zinc-400 dark:text-zinc-600 tracking-tight">{brand}</span>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="bg-black dark:bg-white py-24 border-t border-zinc-200 dark:border-zinc-800">
         <div className="max-w-4xl mx-auto px-8 text-center">
           <h2 className="text-4xl font-bold text-white dark:text-black mb-6">Ready to transform your fleet management?</h2>
           <p className="text-xl text-zinc-400 dark:text-zinc-600 mb-10">Join hundreds of fleet managers who trust FleetFlow every day.</p>
-          <button onClick={() => router.push('/register')} className="bg-white dark:bg-black text-black dark:text-white px-10 py-4 rounded-xl font-bold text-lg hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-all shadow-xl">
-            Start Your Free Trial
-          </button>
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <button onClick={() => router.push('/register')} className="flex items-center justify-center space-x-2 bg-white dark:bg-black text-black dark:text-white px-10 py-4 rounded-xl font-bold text-lg hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-all shadow-xl">
+              <span>Start Your Free Trial</span>
+              <ArrowRight size={20} />
+            </button>
+            <button onClick={() => router.push('/login')} className="flex items-center justify-center space-x-2 border border-zinc-700 dark:border-zinc-300 text-zinc-300 dark:text-zinc-700 px-10 py-4 rounded-xl font-bold text-lg hover:border-white dark:hover:border-black hover:text-white dark:hover:text-black transition-all">
+              <span>Sign In</span>
+            </button>
+          </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-white dark:bg-black text-black dark:text-white py-12 border-t border-zinc-200 dark:border-zinc-800">
-        <div className="max-w-7xl mx-auto px-8 text-center">
-          <div className="flex items-center justify-center space-x-2 mb-6">
-            <Image src="/images/logo.png" alt="FleetFlow Logo" width={32} height={32} className="rounded-full" />
-            <span className="text-2xl font-bold tracking-tight">FleetFlow</span>
+      <footer className="bg-white dark:bg-black border-t border-zinc-200 dark:border-zinc-800 text-black dark:text-white">
+        {/* Top row — brand name */}
+        <div className="max-w-7xl mx-auto px-8 pt-16 pb-8 flex items-start justify-between">
+          <div className="flex items-center space-x-3">
+            <Image src="/images/logo.png" alt="FleetFlow Logo" width={40} height={40} className="rounded-full" />
+            <span className="text-2xl font-bold tracking-tight text-black dark:text-white">FleetFlow</span>
           </div>
-          <p className="text-zinc-600 dark:text-zinc-400">© 2026 FleetFlow. All rights reserved.</p>
+          <span className="text-5xl lg:text-7xl font-black tracking-tighter text-black dark:text-white select-none leading-none">FLEETFLOW</span>
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-zinc-200 dark:border-zinc-800 mx-8"></div>
+
+        {/* Bottom row */}
+        <div className="max-w-7xl mx-auto px-8 py-10 grid grid-cols-1 md:grid-cols-3 gap-10">
+          {/* Left — credits & copyright */}
+          <div className="flex flex-col justify-between">
+            <div>
+              <p className="text-sm text-zinc-500 dark:text-zinc-500 mb-1">Built for modern fleet operators.</p>
+              <p className="text-sm text-zinc-500 dark:text-zinc-500">Powered by Next.js &amp; Firebase.</p>
+            </div>
+            <p className="text-sm text-zinc-400 dark:text-zinc-600 mt-6 font-medium">©2026 FleetFlow. All rights reserved.</p>
+          </div>
+
+          {/* Middle — Connect */}
+          <div>
+            <h4 className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-600 mb-5">Connect</h4>
+            <ul className="space-y-3">
+              {[
+                { label: 'LinkedIn', icon: Linkedin, href: '#' },
+                { label: 'Twitter / X', icon: Twitter, href: '#' },
+                { label: 'GitHub', icon: Github, href: '#' },
+                { label: 'Dribbble', icon: Globe, href: '#' },
+              ].map(({ label, icon: Icon, href }) => (
+                <li key={label}>
+                  <a href={href} className="flex items-center space-x-2 text-sm text-black dark:text-white hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors font-medium">
+                    <Icon size={15} />
+                    <span>{label}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Right — Get in touch */}
+          <div>
+            <h4 className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-600 mb-5">Get In Touch</h4>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed mb-4">
+              We're open for partnerships, enterprise inquiries, and feedback.<br />
+              Or simply say hello — we love hearing from fleet operators.
+            </p>
+            <a href="mailto:hello@fleetflow.io" className="flex items-center space-x-2 text-sm text-black dark:text-white font-medium hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors mb-2">
+              <Mail size={15} />
+              <span>hello@fleetflow.io</span>
+            </a>
+            <a href="tel:+18005553567" className="flex items-center space-x-2 text-sm text-black dark:text-white font-medium hover:text-zinc-500 dark:hover:text-zinc-400 transition-colors">
+              <Phone size={15} />
+              <span>+1 800 555 3567</span>
+            </a>
+          </div>
         </div>
       </footer>
     </div>

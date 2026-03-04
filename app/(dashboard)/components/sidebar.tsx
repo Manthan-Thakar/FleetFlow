@@ -60,9 +60,11 @@ export default function Sidebar({ user }: { user: User }) {
       { label: 'Dashboard', href: '/dashboard', icon: <Home size={20} /> },
       { label: 'Fleet', href: '/fleet', icon: <Truck size={20} /> },
       { label: 'Drivers', href: '/drivers', icon: <Users size={20} /> },
+      { label: 'Managers', href: '/managers', icon: <UserCog size={20} /> },
       { label: 'Trips', href: '/orders', icon: <Package size={20} /> },
-      { label: 'Reports', href: '/reports', icon: <BarChart3 size={20} /> },
+      { label: 'Analytics', href: '/analytics', icon: <BarChart3 size={20} /> },
       { label: 'Maintenance', href: '/maintenance', icon: <Wrench size={20} /> },
+      { label: 'Reports', href: '/reports', icon: <Map size={20} /> },
     ],
     driver: [
       { label: 'Dashboard', href: '/dashboard', icon: <Home size={20} /> },
